@@ -160,6 +160,25 @@ export function IconUpload(props: IconProps) {
   );
 }
 
+export function IconKey(props: IconProps) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="8" cy="15" r="4" />
+      <path d="m10.85 12.15 9.65-9.65M15 7l3 3M18 4l3 3" />
+    </svg>
+  );
+}
+
 export function IconPlus(props: IconProps) {
   return (
     <svg
