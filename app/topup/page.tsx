@@ -35,7 +35,6 @@ export default async function TopupPage({
   // Determine which game to show
   let selectedGameId: string | null = null;
   if (gameParam) {
-    // Try by id first, then by slug
     const found =
       gamesRes.data?.find((g) => g.id === gameParam) ||
       gamesRes.data?.find((g) => g.slug === gameParam);
@@ -47,17 +46,32 @@ export default async function TopupPage({
     selectedGameId = gamesRes.data[0].id;
   }
 
+  // Safety net: if selectedGameId is set but doesn't correspond to any
+  // active game (stale URL, invalid UUID, etc), fall back to first.
+  if (
+    selectedGameId &&
+    gamesRes.data &&
+    !gamesRes.data.some((g) => g.id === selectedGameId)
+  ) {
+    selectedGameId = gamesRes.data[0]?.id ?? null;
+  }
+
   const selectedGame = gamesRes.data?.find((g) => g.id === selectedGameId) ?? null;
 
-  // Fetch products for selected game
-  const productsRes = selectedGameId
-    ? await supabase
-        .from("products")
-        .select("id,slug,game,category,denomination,price_idr,cashback_pct,is_active")
-        .eq("is_active", true)
-        .eq("game_id", selectedGameId)
-        .order("sort_order", { ascending: true })
-    : { data: [] };
+  // Fetch products for selected game — guard against non-UUID strings
+  // (e.g. a slug that resolved to nothing, or arbitrary ?game=foo).
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const productsRes =
+    selectedGameId && uuidLike.test(selectedGameId)
+      ? await supabase
+          .from("products")
+          .select(
+            "id,slug,game,category,denomination,price_idr,cashback_pct,is_active"
+          )
+          .eq("is_active", true)
+          .eq("game_id", selectedGameId)
+          .order("sort_order", { ascending: true })
+      : { data: [] };
 
   const grouped: Record<string, NonNullable<typeof methodsRes.data>> = {};
   for (const m of methodsRes.data ?? []) {

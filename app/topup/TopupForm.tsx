@@ -282,6 +282,23 @@ export default function TopupForm({
                 <h2 className="text-lg font-bold">Pilih nominal</h2>
               </div>
               <div className="mt-5 text-xs font-semibold uppercase tracking-wider text-white/40">Diamond</div>
+              {nominals.length === 0 ? (
+                <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/[0.06] p-4 text-sm text-amber-200">
+                  <div className="font-medium">
+                    Belum ada produk untuk game ini.
+                  </div>
+                  <div className="mt-1 text-xs text-amber-200/70">
+                    Tambah produk di{" "}
+                    <a
+                      href="/admin/games"
+                      className="underline underline-offset-2 hover:text-white"
+                    >
+                      /admin/games
+                    </a>
+                    .
+                  </div>
+                </div>
+              ) : (
               <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {nominals
                   .filter((n) => n.category === "diamond")
@@ -305,6 +322,7 @@ export default function TopupForm({
                   </div>
                 )}
               </div>
+              )}
               {nominals.some((n) => n.category === "paket") && (
                 <>
                   <div className="mt-6 text-xs font-semibold uppercase tracking-wider text-white/40">Paket khusus</div>
@@ -427,7 +445,7 @@ export default function TopupForm({
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-white/45">Nominal</span>
-                <span className="text-right font-medium">{nom.label}</span>
+                <span className="text-right font-medium">{nom?.label ?? "—"}</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-white/45">Metode</span>
@@ -437,7 +455,7 @@ export default function TopupForm({
             <div className="mt-4 space-y-2 border-t border-white/10 pt-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-white/45">Harga</span>
-                <span>{rp(nom.price)}</span>
+                <span>{rp(nom?.price ?? 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/45">Biaya layanan</span>
