@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash } from "@/components/Icons";
+import { ToggleSwitch } from "@/components/ToggleSwitch";
 
 type Method = {
   id: string;
@@ -26,6 +27,19 @@ type SignParams = {
   folder: string;
 };
 
+type RowState = {
+  enabled: boolean;
+  saving: boolean;
+};
+
+type Toast = {
+  id: number;
+  kind: "error" | "success";
+  message: string;
+};
+
+const DEBOUNCE_MS = 350;
+
 export function PaymentMethodsTable({
   methods,
   signParams,
@@ -34,16 +48,81 @@ export function PaymentMethodsTable({
   signParams: SignParams | null;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
 
-  async function toggle(id: string, is_enabled: boolean) {
-    await fetch(`/api/admin/payment-methods/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_enabled }),
+  const [rowState, setRowState] = useState<Record<string, RowState>>({});
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastId = useRef(0);
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const inflight = useRef<Record<string, AbortController>>({});
+
+  // Initialize / sync rowState when methods list changes
+  useEffect(() => {
+    setRowState((prev) => {
+      const next: Record<string, RowState> = { ...prev };
+      for (const m of methods) {
+        if (!next[m.id]) {
+          next[m.id] = { enabled: m.is_enabled, saving: false };
+        } else if (!next[m.id].saving) {
+          next[m.id] = { ...next[m.id], enabled: m.is_enabled };
+        }
+      }
+      return next;
     });
-    startTransition(() => router.refresh());
+  }, [methods]);
+
+  function pushToast(kind: Toast["kind"], message: string) {
+    const id = ++toastId.current;
+    setToasts((t) => [...t, { id, kind, message }]);
+    setTimeout(() => {
+      setToasts((t) => t.filter((x) => x.id !== id));
+    }, 4500);
+  }
+
+  async function toggle(id: string, next: boolean) {
+    setRowState((prev) => ({
+      ...prev,
+      [id]: { enabled: next, saving: true },
+    }));
+
+    if (debounceTimers.current[id]) {
+      clearTimeout(debounceTimers.current[id]);
+    }
+    if (inflight.current[id]) {
+      inflight.current[id].abort();
+    }
+
+    debounceTimers.current[id] = setTimeout(async () => {
+      const controller = new AbortController();
+      inflight.current[id] = controller;
+
+      try {
+        const res = await fetch(`/api/admin/payment-methods/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_enabled: next }),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+        setRowState((prev) => ({
+          ...prev,
+          [id]: { enabled: next, saving: false },
+        }));
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+        setRowState((prev) => ({
+          ...prev,
+          [id]: { enabled: !next, saving: false },
+        }));
+        pushToast("error", `Gagal update status: ${e?.message ?? e}`);
+      } finally {
+        delete inflight.current[id];
+      }
+    }, DEBOUNCE_MS);
   }
 
   async function remove(id: string, label: string) {
@@ -98,62 +177,71 @@ export function PaymentMethodsTable({
               </tr>
             </thead>
             <tbody>
-              {list.map((m) => (
-                <tr key={m.id} className="border-t border-white/5">
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-block h-3 w-3 rounded-full"
-                        style={{ background: m.icon_color }}
-                      />
-                      <span className="font-medium">{m.label}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <MethodImageCell method={m} signParams={signParams} />
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-white/60">
-                    {m.code}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {m.fee_idr > 0
-                      ? `Rp ${m.fee_idr.toLocaleString("id-ID")}`
-                      : "Gratis"}
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-white/60">
-                    {m.sub_label ?? "-"}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {m.is_enabled ? (
-                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-white/50">
-                        Off
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => toggle(m.id, !m.is_enabled)}
-                        disabled={pending}
-                        className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/80 hover:bg-white/10 disabled:opacity-50"
-                      >
-                        {m.is_enabled ? "Off" : "On"}
-                      </button>
+              {list.map((m) => {
+                const state = rowState[m.id] ?? {
+                  enabled: m.is_enabled,
+                  saving: false,
+                };
+                return (
+                  <tr key={m.id} className="border-t border-white/5">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full"
+                          style={{ background: m.icon_color }}
+                        />
+                        <span className="font-medium">{m.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <MethodImageCell method={m} signParams={signParams} />
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-white/60">
+                      {m.code}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {m.fee_idr > 0
+                        ? `Rp ${m.fee_idr.toLocaleString("id-ID")}`
+                        : "Gratis"}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-white/60">
+                      {m.sub_label ?? "-"}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <ToggleSwitch
+                          checked={state.enabled}
+                          disabled={state.saving}
+                          onChange={(next) => toggle(m.id, next)}
+                        />
+                        <span
+                          className={`text-[10px] uppercase tracking-wider ${
+                            state.saving
+                              ? "text-white/40"
+                              : state.enabled
+                              ? "text-emerald-300"
+                              : "text-white/40"
+                          }`}
+                        >
+                          {state.saving
+                            ? "Saving…"
+                            : state.enabled
+                            ? "Aktif"
+                            : "Off"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5">
                       <button
                         onClick={() => remove(m.id, m.label)}
-                        disabled={pending}
-                        className="rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                        className="rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20"
                       >
                         <IconTrash />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -163,6 +251,150 @@ export function PaymentMethodsTable({
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center text-white/50">
           Belum ada metode
         </div>
+      )}
+
+      <ToastStack toasts={toasts} />
+    </div>
+  );
+}
+
+function ToastStack({ toasts }: { toasts: Toast[] }) {
+  if (toasts.length === 0) return null;
+  return (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={`pointer-events-auto min-w-[260px] max-w-sm rounded-lg border px-3 py-2 text-sm shadow-lg backdrop-blur ${
+            t.kind === "error"
+              ? "border-red-500/30 bg-red-500/15 text-red-100"
+              : "border-emerald-500/30 bg-emerald-500/15 text-emerald-100"
+          }`}
+        >
+          {t.message}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MethodImageCell({
+  method,
+  signParams,
+}: {
+  method: Method;
+  signParams: SignParams | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!signParams) {
+      setError("Cloudinary belum dikonfigurasi");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", signParams.apiKey);
+      fd.append("timestamp", String(signParams.timestamp));
+      fd.append("signature", signParams.signature);
+      fd.append("folder", "payment-methods");
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${signParams.cloudName}/image/upload`,
+        { method: "POST", body: fd }
+      );
+      if (!res.ok) {
+        const t = await res.text();
+        let msg = t;
+        try {
+          msg = JSON.parse(t)?.error?.message ?? t;
+        } catch {}
+        if (/cloud_name.*disabled/i.test(msg)) {
+          throw new Error(
+            `Cloudinary cloud disabled. Aktifkan di dashboard Cloudinary.`
+          );
+        }
+        throw new Error(msg);
+      }
+      const json = await res.json();
+
+      const saveRes = await fetch(
+        `/api/admin/payment-methods/${method.id}/image`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            publicId: json.public_id,
+            url: json.secure_url,
+          }),
+        }
+      );
+      if (!saveRes.ok) throw new Error("Gagal simpan");
+
+      if (inputRef.current) inputRef.current.value = "";
+      window.location.reload();
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  if (method.image_url) {
+    return (
+      <div className="flex items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={method.image_url}
+          alt={method.label}
+          className="h-8 w-8 rounded object-contain bg-white"
+        />
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/80 hover:bg-white/10"
+          disabled={uploading}
+        >
+          Ganti
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={upload}
+        />
+        {error && (
+          <span className="text-xs text-red-300">{error}</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading || !signParams}
+        className="rounded-md border border-dashed border-white/15 bg-white/[0.04] px-2 py-1 text-xs text-white/60 hover:bg-white/[0.08] disabled:opacity-50"
+      >
+        {uploading ? "Uploading…" : signParams ? "Upload" : "Cloud off"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={upload}
+      />
+      {error && (
+        <div className="mt-1 text-xs text-red-300">{error}</div>
       )}
     </div>
   );
@@ -306,125 +538,5 @@ function Field({
       </span>
       {children}
     </label>
-  );
-}
-
-function MethodImageCell({
-  method,
-  signParams,
-}: {
-  method: Method;
-  signParams: SignParams | null;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!signParams) {
-      setError("Cloudinary belum dikonfigurasi");
-      return;
-    }
-    setError(null);
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("api_key", signParams.apiKey);
-      fd.append("timestamp", String(signParams.timestamp));
-      fd.append("signature", signParams.signature);
-      fd.append("folder", "payment-methods");
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${signParams.cloudName}/image/upload`,
-        { method: "POST", body: fd }
-      );
-      if (!res.ok) {
-        const t = await res.text();
-        let msg = t;
-        try {
-          msg = JSON.parse(t)?.error?.message ?? t;
-        } catch {}
-        if (/cloud_name.*disabled/i.test(msg)) {
-          throw new Error(`Cloudinary cloud disabled. Aktifkan di dashboard Cloudinary.`);
-        }
-        throw new Error(msg);
-      }
-      const json = await res.json();
-
-      const saveRes = await fetch(
-        `/api/admin/payment-methods/${method.id}/image`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            publicId: json.public_id,
-            url: json.secure_url,
-          }),
-        }
-      );
-      if (!saveRes.ok) throw new Error("Gagal simpan");
-
-      if (inputRef.current) inputRef.current.value = "";
-      window.location.reload();
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  if (method.image_url) {
-    return (
-      <div className="flex items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={method.image_url}
-          alt={method.label}
-          className="h-8 w-8 rounded object-contain bg-white"
-        />
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/80 hover:bg-white/10"
-          disabled={uploading}
-        >
-          Ganti
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="hidden"
-          onChange={upload}
-        />
-        {error && (
-          <span className="text-xs text-red-300">{error}</span>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading || !signParams}
-        className="rounded-md border border-dashed border-white/15 bg-white/[0.04] px-2 py-1 text-xs text-white/60 hover:bg-white/[0.08] disabled:opacity-50"
-      >
-        {uploading ? "Uploading…" : signParams ? "Upload" : "Cloud off"}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={upload}
-      />
-      {error && (
-        <div className="mt-1 text-xs text-red-300">{error}</div>
-      )}
-    </div>
   );
 }
