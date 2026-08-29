@@ -13,15 +13,25 @@ create table if not exists public.admin_roles (
 
 alter table public.admin_roles enable row level security;
 
-drop policy if exists "admins can read admin_roles" on public.admin_roles;
-create policy "admins can read admin_roles"
-  on public.admin_roles for select
-  using (
-    exists (
-      select 1 from public.admin_roles ar
-      where ar.user_id = auth.uid()
-    )
+-- Helper function: bypass RLS to check admin status without recursion
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.admin_roles
+    where user_id = auth.uid()
   );
+$$;
+
+drop policy if exists "authenticated can read admin_roles" on public.admin_roles;
+create policy "authenticated can read admin_roles"
+  on public.admin_roles for select
+  to authenticated
+  using (true);
 
 -- 2. Products / game catalog
 create table if not exists public.products (
@@ -52,12 +62,9 @@ create policy "public can read active products"
 drop policy if exists "admins can manage products" on public.products;
 create policy "admins can manage products"
   on public.products for all
-  using (
-    exists (select 1 from public.admin_roles where user_id = auth.uid())
-  )
-  with check (
-    exists (select 1 from public.admin_roles where user_id = auth.uid())
-  );
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- 3. Orders / Top-up transactions
 create table if not exists public.orders (
@@ -98,9 +105,8 @@ create policy "public can read their invoice"
 drop policy if exists "admins can update orders" on public.orders;
 create policy "admins can update orders"
   on public.orders for update
-  using (
-    exists (select 1 from public.admin_roles where user_id = auth.uid())
-  );
+  to authenticated
+  using (public.is_admin());
 
 -- 4. Site settings (key-value config editable from admin)
 create table if not exists public.site_settings (
@@ -118,12 +124,9 @@ create policy "public can read site_settings"
 drop policy if exists "admins can manage site_settings" on public.site_settings;
 create policy "admins can manage site_settings"
   on public.site_settings for all
-  using (
-    exists (select 1 from public.admin_roles where user_id = auth.uid())
-  )
-  with check (
-    exists (select 1 from public.admin_roles where user_id = auth.uid())
-  );
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- 5. Updated_at triggers
 create or replace function public.set_updated_at()
