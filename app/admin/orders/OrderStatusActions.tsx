@@ -17,7 +17,15 @@ const NEXT_STATUS: Record<string, OrderStatus[]> = {
   refunded: [],
 };
 
-export function OrderStatusActions({ order }: { order: Order }) {
+export function OrderStatusActions({
+  order,
+  onDeleted,
+  onUpdated,
+}: {
+  order: Order;
+  onDeleted?: (deletedId: string) => void;
+  onUpdated?: (updated: Order) => void;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(order.notes ?? "");
@@ -30,9 +38,11 @@ export function OrderStatusActions({ order }: { order: Order }) {
   function change(next: OrderStatus) {
     startTransition(async () => {
       try {
-        await updateOrderStatus(order.id, next, notes);
+        const updated = await updateOrderStatus(order.id, next, notes);
         Toast.success(`Status diubah ke ${next}`);
         setOpen(false);
+        if (updated && onUpdated) onUpdated(updated);
+        startTransition(() => router.refresh());
       } catch (e: any) {
         Toast.error(humaniseError(e?.message));
       }
@@ -40,7 +50,7 @@ export function OrderStatusActions({ order }: { order: Order }) {
   }
 
   function askDelete() {
-    if (deleting) return; // belt-and-braces guard against rapid double-click
+    if (deleting) return;
     ask({
       title: "Hapus Pesanan?",
       itemName: order.invoice,
@@ -53,13 +63,13 @@ export function OrderStatusActions({ order }: { order: Order }) {
           const res = await fetch(`/api/admin/orders/${order.id}`, {
             method: "DELETE",
           });
-          // 404 = already gone (race / double click) — treat as success
           if (res.ok) {
+            onDeleted?.(order.id);
             Toast.success("Pesanan dihapus");
           } else {
             const data = await res.json().catch(() => ({}));
             if (res.status === 404) {
-              // Already deleted — just refresh the list and treat as ok
+              onDeleted?.(order.id);
               Toast.info("Pesanan sudah dihapus");
             } else {
               Toast.error(humaniseError(data?.error, "Gagal menghapus pesanan"));

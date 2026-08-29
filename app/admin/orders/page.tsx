@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { OrderStatusActions } from "./OrderStatusActions";
+import { OrdersTable } from "./OrdersTable";
 import type { Order, OrderStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -78,98 +78,12 @@ export default async function AdminOrdersPage({
           })}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-xs uppercase text-white/50">
-              <tr>
-                <th className="px-3 py-2">Invoice</th>
-                <th className="px-3 py-2">Game / Item</th>
-                <th className="px-3 py-2">User ID</th>
-                <th className="px-3 py-2">Pembayaran</th>
-                <th className="px-3 py-2">Amount</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(orders as Order[] | null)?.map((o) => (
-                <tr
-                  key={o.id}
-                  className="border-t border-white/5 align-top hover:bg-white/[0.02]"
-                >
-                  <td className="px-3 py-3">
-                    <div className="font-mono text-xs">{o.invoice}</div>
-                    <div className="text-[10px] text-white/40">
-                      {new Date(o.created_at).toLocaleString("id-ID")}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="text-white">{o.game}</div>
-                    <div className="text-xs text-white/60">{o.denomination}</div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="font-mono text-xs">{o.game_user_id}</div>
-                    {o.whatsapp && (
-                      <div className="text-[10px] text-white/50">
-                        WA: {o.whatsapp}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-xs">
-                    {o.payment_method ?? "-"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="font-medium">
-                      Rp {o.amount_idr.toLocaleString("id-ID")}
-                    </div>
-                    {o.cashback_idr > 0 && (
-                      <div className="text-[10px] text-emerald-300">
-                        cashback Rp {o.cashback_idr.toLocaleString("id-ID")}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    <StatusBadge status={o.status} />
-                  </td>
-                  <td className="px-3 py-3">
-                    <OrderStatusActions order={o} />
-                  </td>
-                </tr>
-              ))}
-              {(!orders || orders.length === 0) && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-3 py-10 text-center text-white/50"
-                  >
-                    Tidak ada pesanan dengan filter ini.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <OrdersTable
+          initialOrders={(orders as Order[] | null) ?? []}
+          status={status}
+          q={q}
+        />
       </div>
     </>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    pending: "bg-amber-500/15 text-amber-300 border-amber-400/30",
-    paid: "bg-sky-500/15 text-sky-300 border-sky-400/30",
-    processing: "bg-violet-500/15 text-violet-300 border-violet-400/30",
-    success: "bg-emerald-500/15 text-emerald-300 border-emerald-400/30",
-    failed: "bg-red-500/15 text-red-300 border-red-400/30",
-    refunded: "bg-zinc-500/15 text-zinc-300 border-zinc-400/30",
-  };
-  return (
-    <span
-      className={`inline-block rounded-full border px-2 py-0.5 text-xs capitalize ${
-        map[status] ?? "border-white/10 text-white/70"
-      }`}
-    >
-      {status}
-    </span>
   );
 }

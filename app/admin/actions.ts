@@ -15,20 +15,25 @@ export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
   notes?: string
-) {
+): Promise<Order | null> {
   const supabase = await createClient();
   const updates: Record<string, unknown> = { status };
   if (status === "paid" && !notes) updates.paid_at = new Date().toISOString();
   if (status === "success") updates.completed_at = new Date().toISOString();
   if (typeof notes === "string") updates.notes = notes;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("orders")
     .update(updates)
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .select(
+      "id,invoice,game,denomination,game_user_id,whatsapp,payment_method,amount_idr,cashback_idr,status,created_at,notes"
+    )
+    .maybeSingle();
   if (error) throw new Error(error.message);
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  return (data as Order | null) ?? null;
 }
 
 export async function upsertProduct(product: Partial<Product> & { id?: string }) {
