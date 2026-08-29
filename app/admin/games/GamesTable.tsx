@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { humaniseError } from "@/lib/errors";
 import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash } from "@/components/Icons";
 import { GameCoverUploader } from "./GameCoverUploader";
@@ -56,7 +57,7 @@ export function GamesTable({
         const res = await fetch(`/api/admin/games/${id}`, { method: "DELETE" });
         if (!res.ok) {
           const e = await res.json().catch(() => ({}));
-          throw new Error(e.error ?? `HTTP ${res.status}`);
+          throw new Error(humaniseError(e.error, "Gagal menghapus game"));
         }
         startTransition(() => router.refresh());
       },

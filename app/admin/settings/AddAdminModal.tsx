@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { humaniseError } from "@/lib/errors";
 
 type Admin = {
   user_id: string;
@@ -102,7 +103,7 @@ export function AddAdminModal({
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error(e.error ?? `HTTP ${res.status}`);
+        throw new Error(humaniseError(e.error, "Gagal membuat admin"));
       }
       const json = await res.json();
       onCreated(json.admin);

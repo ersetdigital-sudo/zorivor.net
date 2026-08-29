@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { humaniseError } from "@/lib/errors";
 
 type Admin = {
   user_id: string;
@@ -94,7 +95,7 @@ export function ChangePasswordModal({
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error(e.error ?? `HTTP ${res.status}`);
+        throw new Error(humaniseError(e.error, "Gagal mengubah password"));
       }
       onSuccess();
     } catch (e: any) {

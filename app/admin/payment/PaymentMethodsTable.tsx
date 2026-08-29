@@ -6,6 +6,7 @@ import { IconPlus, IconTrash } from "@/components/Icons";
 import { ToggleSwitch } from "@/components/ToggleSwitch";
 import { useConfirm } from "@/components/ConfirmModal";
 import { Toast } from "@/components/Toast";
+import { humaniseError } from "@/lib/errors";
 
 type Method = {
   id: string;
@@ -125,7 +126,7 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
         );
         if (!res.ok) {
           const e = await res.json().catch(() => ({}));
-          throw new Error(e.error ?? `HTTP ${res.status}`);
+          throw new Error(humaniseError(e.error, "Gagal menghapus metode"));
         }
         Toast.success("Metode dihapus");
         startTransition(() => router.refresh());

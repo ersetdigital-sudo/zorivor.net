@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "../actions";
 import { useConfirm } from "@/components/ConfirmModal";
 import { Toast } from "@/components/Toast";
+import { humaniseError } from "@/lib/errors";
 import type { Order, OrderStatus } from "@/lib/types";
 
 const NEXT_STATUS: Record<string, OrderStatus[]> = {
@@ -33,12 +34,13 @@ export function OrderStatusActions({ order }: { order: Order }) {
         Toast.success(`Status diubah ke ${next}`);
         setOpen(false);
       } catch (e: any) {
-        Toast.error(e?.message ?? "Gagal update status");
+        Toast.error(humaniseError(e?.message));
       }
     });
   }
 
   function askDelete() {
+    if (deleting) return; // belt-and-braces guard against rapid double-click
     ask({
       title: "Hapus Pesanan?",
       itemName: order.invoice,
@@ -51,12 +53,21 @@ export function OrderStatusActions({ order }: { order: Order }) {
           const res = await fetch(`/api/admin/orders/${order.id}`, {
             method: "DELETE",
           });
-          if (!res.ok) {
-            const e = await res.json().catch(() => ({}));
-            throw new Error(e.error ?? `HTTP ${res.status}`);
+          // 404 = already gone (race / double click) — treat as success
+          if (res.ok) {
+            Toast.success("Pesanan dihapus");
+          } else {
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 404) {
+              // Already deleted — just refresh the list and treat as ok
+              Toast.info("Pesanan sudah dihapus");
+            } else {
+              Toast.error(humaniseError(data?.error, "Gagal menghapus pesanan"));
+            }
           }
-          Toast.success("Pesanan dihapus");
           startTransition(() => router.refresh());
+        } catch (e: any) {
+          Toast.error(humaniseError(e?.message, "Gagal menghapus pesanan"));
         } finally {
           setDeleting(false);
         }
@@ -87,9 +98,9 @@ export function OrderStatusActions({ order }: { order: Order }) {
           onClick={askDelete}
           disabled={deleting || pending}
           title="Hapus pesanan permanen"
-          className="ml-auto rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+          className="ml-auto rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {deleting ? "…" : "Hapus"}
+          {deleting ? "Menghapus…" : "Hapus"}
         </button>
       </div>
       {open && (

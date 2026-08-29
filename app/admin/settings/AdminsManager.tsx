@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { humaniseError } from "@/lib/errors";
 import { useRouter } from "next/navigation";
 import { ConfirmModal, useConfirm } from "@/components/ConfirmModal";
 import { Toast } from "@/components/Toast";
@@ -73,7 +74,7 @@ export function AdminsManager({
         });
         if (!res.ok) {
           const e = await res.json().catch(() => ({}));
-          throw new Error(e.error ?? `HTTP ${res.status}`);
+          throw new Error(humaniseError(e.error, "Gagal menghapus admin"));
         }
         setAdmins((prev) => prev.filter((x) => x.user_id !== a.user_id));
         Toast.success("Admin dihapus");

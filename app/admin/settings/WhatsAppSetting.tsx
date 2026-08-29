@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_SUPPORT_WA, waMeUrl } from "@/lib/wa";
 import { Toast } from "@/components/Toast";
+import { humaniseError } from "@/lib/errors";
 
 type Status = "idle" | "saving" | "saved" | "error";
 
@@ -94,7 +95,7 @@ export function WhatsAppSetting({
       );
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error(e.error ?? `HTTP ${res.status}`);
+        throw new Error(humaniseError(e.error, "Gagal menyimpan"));
       }
       setDisplay(normalised);
       setEditing(false);

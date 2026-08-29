@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash, IconUpload } from "@/components/Icons";
 import { useConfirm } from "@/components/ConfirmModal";
 import { Toast } from "@/components/Toast";
+import { humaniseError } from "@/lib/errors";
 
 type Game = {
   id: string;
