@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings, waMeUrl } from "@/lib/site-settings";
 import { SuccessClient } from "./SuccessClient";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,10 @@ export default async function TopupSuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const invoice = params.invoice ?? "";
 
+  const supabase = await createClient();
+  const settings = await getSiteSettings(["support_whatsapp"] as const);
+  const supportUrl = waMeUrl(settings.support_whatsapp);
+
   if (!invoice) {
     return (
       <Suspense fallback={null}>
@@ -21,12 +26,11 @@ export default async function TopupSuccessPage({ searchParams }: PageProps) {
           qrisUrl={null}
           paymentMethodImage={null}
           paymentMethodLabel={null}
+          supportUrl={supportUrl}
         />
       </Suspense>
     );
   }
-
-  const supabase = await createClient();
 
   const [orderRes, qrisRes] = await Promise.all([
     supabase
@@ -67,6 +71,7 @@ export default async function TopupSuccessPage({ searchParams }: PageProps) {
         qrisUrl={qrisUrl}
         paymentMethodImage={pmImage}
         paymentMethodLabel={pmLabel}
+        supportUrl={supportUrl}
       />
     </Suspense>
   );

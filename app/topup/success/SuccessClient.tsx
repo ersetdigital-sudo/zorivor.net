@@ -22,12 +22,14 @@ export function SuccessClient({
   qrisUrl,
   paymentMethodImage,
   paymentMethodLabel,
+  supportUrl,
 }: {
   invoice: string;
   order: Order | null;
   qrisUrl: string | null;
   paymentMethodImage: string | null;
   paymentMethodLabel: string | null;
+  supportUrl: string;
 }) {
   const params = useSearchParams();
   const fallbackInvoice = params.get("invoice") || invoice || "ZRV-DEMO-X1Y2";
@@ -359,7 +361,7 @@ export function SuccessClient({
               <span>
                 Kalau lebih dari 15 menit belum masuk, hubungi{" "}
                 <a
-                  href="https://wa.me/6281234567890"
+                  href={supportUrl}
                   className="text-white underline-offset-4 hover:underline"
                 >
                   CS WhatsApp
@@ -394,7 +396,7 @@ export function SuccessClient({
             Top up lagi
           </a>
           <a
-            href="https://wa.me/6281234567890"
+            href={supportUrl}
             className="flex-1 rounded-2xl border border-white/12 bg-white/5 px-6 py-3.5 text-center text-sm font-semibold text-white/85 transition hover:bg-white/10"
           >
             Hubungi CS

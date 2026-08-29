@@ -12,6 +12,7 @@ import {
 } from "@/components/Sections";
 import { Reveal } from "@/components/Reveal";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings, waMeUrl } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,9 @@ export default async function Home() {
     bg: DEFAULT_GRADIENTS[i % DEFAULT_GRADIENTS.length],
   }));
 
+  const settings = await getSiteSettings(["support_whatsapp"] as const);
+  const supportUrl = waMeUrl(settings.support_whatsapp);
+
   return (
     <>
       <Nav />
@@ -51,7 +55,7 @@ export default async function Home() {
       <HowItWorks />
       <Why />
       <FAQ />
-      <CtaGlow />
+      <CtaGlow supportUrl={supportUrl} />
       <Footer />
       <MobileBottomNav />
       <Reveal />

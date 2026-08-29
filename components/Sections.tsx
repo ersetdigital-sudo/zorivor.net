@@ -232,7 +232,7 @@ export function FAQ() {
   );
 }
 
-export function CtaGlow() {
+export function CtaGlow({ supportUrl }: { supportUrl: string }) {
   return (
     <section className="relative overflow-hidden py-24">
       <div
@@ -259,7 +259,7 @@ export function CtaGlow() {
             Top Up Sekarang
           </a>
           <a
-            href="https://wa.me/6281234567890"
+            href={supportUrl}
             className="rounded-2xl border border-white/15 px-7 py-4 font-semibold text-white/85 hover:bg-white/5"
           >
             Chat CS
