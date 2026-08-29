@@ -27,7 +27,7 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: games } = await supabase
     .from("games")
-    .select("id,name,publisher,category,cover_url")
+    .select("id,name,publisher,category,cover_url,is_popular,is_hot")
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
@@ -38,6 +38,8 @@ export default async function Home() {
     category: g.category,
     cover: g.cover_url,
     bg: DEFAULT_GRADIENTS[i % DEFAULT_GRADIENTS.length],
+    is_popular: g.is_popular ?? false,
+    is_hot: g.is_hot ?? false,
   }));
 
   const settings = await getSiteSettings(["support_whatsapp"] as const);

@@ -45,6 +45,8 @@ create table if not exists public.games (
   description text,
   is_active boolean default true,
   sort_order integer default 0,
+  is_popular boolean default false,
+  is_hot boolean default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

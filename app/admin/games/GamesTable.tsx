@@ -15,6 +15,8 @@ type Game = {
   category: string;
   cover_url: string | null;
   is_active: boolean;
+  is_popular: boolean;
+  is_hot: boolean;
   sort_order: number;
 };
 
@@ -38,11 +40,11 @@ export function GamesTable({
   const [showAdd, setShowAdd] = useState(false);
   const { ask, ConfirmNode } = useConfirm();
 
-  async function toggle(id: string, is_active: boolean) {
+  async function toggleFlag(id: string, field: string, value: boolean) {
     await fetch(`/api/admin/games/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active }),
+      body: JSON.stringify({ [field]: value }),
     });
     startTransition(() => router.refresh());
   }
@@ -131,11 +133,35 @@ export function GamesTable({
               </div>
               <div className="mt-1.5 flex gap-1">
                 <button
-                  onClick={() => toggle(g.id, !g.is_active)}
+                  onClick={() => toggleFlag(g.id, "is_active", !g.is_active)}
                   disabled={pending}
                   className="flex-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-1 text-[11px] text-white/80 hover:bg-white/10 disabled:opacity-50"
                 >
                   {g.is_active ? "Off" : "On"}
+                </button>
+                <button
+                  onClick={() => toggleFlag(g.id, "is_popular", !g.is_popular)}
+                  disabled={pending}
+                  title={g.is_popular ? "Hapus dari Populer" : "Jadikan Populer"}
+                  className={`flex-1 rounded-md border px-1.5 py-1 text-[11px] disabled:opacity-50 ${
+                    g.is_popular
+                      ? "border-amber-400/40 bg-amber-500/15 text-amber-300"
+                      : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  {g.is_popular ? "★" : "☆"}
+                </button>
+                <button
+                  onClick={() => toggleFlag(g.id, "is_hot", !g.is_hot)}
+                  disabled={pending}
+                  title={g.is_hot ? "Hapus HOT badge" : "Tambah HOT badge"}
+                  className={`flex-1 rounded-md border px-1.5 py-1 text-[11px] disabled:opacity-50 ${
+                    g.is_hot
+                      ? "border-orange-400/40 bg-orange-500/15 text-orange-300"
+                      : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  🔥
                 </button>
                 <a
                   href={`/admin/games/${g.id}`}

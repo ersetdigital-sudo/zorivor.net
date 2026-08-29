@@ -9,7 +9,7 @@ export default async function AdminGamesPage() {
 
   const { data: games } = await supabase
     .from("games")
-    .select("id,slug,name,publisher,category,cover_url,is_active,sort_order")
+    .select("id,slug,name,publisher,category,cover_url,is_active,is_popular,is_hot,sort_order")
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
