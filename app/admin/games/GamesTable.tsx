@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash } from "@/components/Icons";
 import { GameCoverUploader } from "./GameCoverUploader";
+import { useConfirm } from "@/components/ConfirmModal";
 
 type Game = {
   id: string;
@@ -34,6 +35,7 @@ export function GamesTable({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
+  const { ask, ConfirmNode } = useConfirm();
 
   async function toggle(id: string, is_active: boolean) {
     await fetch(`/api/admin/games/${id}`, {
@@ -45,9 +47,20 @@ export function GamesTable({
   }
 
   async function remove(id: string, name: string) {
-    if (!confirm(`Hapus game "${name}"? Produk di dalamnya akan kehilangan game_id.`)) return;
-    await fetch(`/api/admin/games/${id}`, { method: "DELETE" });
-    startTransition(() => router.refresh());
+    ask({
+      title: "Hapus Game?",
+      itemName: name,
+      description:
+        "Produk yang terkait game ini akan kehilangan referensinya. Game akan hilang dari katalog landing page dan tidak bisa dipilih di halaman top-up. Aksi ini tidak bisa dibatalkan.",
+      onConfirm: async () => {
+        const res = await fetch(`/api/admin/games/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
+        startTransition(() => router.refresh());
+      },
+    });
   }
 
   return (

@@ -10,6 +10,7 @@ import {
   IconLogout,
   IconGames,
 } from "@/components/Icons";
+import { ToastHost } from "@/components/Toast";
 
 export default async function AdminLayout({
   children,
@@ -82,6 +83,7 @@ export default async function AdminLayout({
         </div>
         <div className="p-6 lg:p-8">{children}</div>
       </main>
+      <ToastHost />
     </div>
   );
 }
