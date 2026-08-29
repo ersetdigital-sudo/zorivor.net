@@ -33,10 +33,47 @@ create policy "authenticated can read admin_roles"
   to authenticated
   using (true);
 
--- 2. Products / game catalog
+-- 2. Games (parent catalog — covers + publisher info)
+create table if not exists public.games (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  publisher text,
+  category text default 'topup',
+  cover_public_id text,
+  cover_url text,
+  description text,
+  is_active boolean default true,
+  sort_order integer default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_games_active on public.games(is_active);
+
+alter table public.games enable row level security;
+
+drop policy if exists "public can read active games" on public.games;
+create policy "public can read active games"
+  on public.games for select using (is_active = true);
+
+drop policy if exists "admins can manage games" on public.games;
+create policy "admins can manage games"
+  on public.games for all
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop trigger if exists trg_games_updated on public.games;
+create trigger trg_games_updated
+  before update on public.games
+  for each row execute function public.set_updated_at();
+
+-- 3. Products (game-specific denominations)
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
+  game_id uuid references public.games(id) on delete set null,
   game text not null,
   category text not null,
   denomination text not null,
@@ -46,11 +83,19 @@ create table if not exists public.products (
   stock integer default 999,
   is_active boolean default true,
   sort_order integer default 0,
+  icon_public_id text,
+  icon_url text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
+-- Migrations for existing prod table (idempotent)
+alter table public.products add column if not exists game_id uuid references public.games(id) on delete set null;
+alter table public.products add column if not exists icon_public_id text;
+alter table public.products add column if not exists icon_url text;
+
 create index if not exists idx_products_game on public.products(game);
+create index if not exists idx_products_game_id on public.products(game_id);
 create index if not exists idx_products_active on public.products(is_active);
 
 alter table public.products enable row level security;
@@ -214,20 +259,52 @@ insert into public.site_settings (key, value) values
   ('hero_title', '"Top Up Game Termurah, Tanpa Biaya Admin"'::jsonb)
 on conflict (key) do nothing;
 
--- 7. Seed: sample products
-insert into public.products (slug, game, category, denomination, price_idr, base_price_idr, cashback_pct, sort_order) values
-  ('ml-5', 'Mobile Legends', 'Diamond', '5 Diamond', 1500, 1700, 4, 1),
-  ('ml-12', 'Mobile Legends', 'Diamond', '12 Diamond', 3400, 3700, 4, 2),
-  ('ml-28', 'Mobile Legends', 'Diamond', '28 Diamond', 7900, 8500, 4, 3),
-  ('ml-86', 'Mobile Legends', 'Diamond', '86 Diamond', 23000, 25000, 5, 4),
-  ('ml-172', 'Mobile Legends', 'Diamond', '172 Diamond', 46000, 49000, 5, 5),
-  ('ml-257', 'Mobile Legends', 'Diamond', '257 Diamond', 68500, 72000, 6, 6),
-  ('ml-706', 'Mobile Legends', 'Diamond', '706 Diamond', 184000, 192000, 7, 7),
-  ('ml-1412', 'Mobile Legends', 'Diamond', '1412 Diamond', 362000, 378000, 7, 8),
-  ('ml-2195', 'Mobile Legends', 'Diamond', '2195 Diamond', 540000, 565000, 8, 9),
-  ('ml-weekly', 'Mobile Legends', 'Paket', 'Weekly Pass', 27500, 29500, 4, 10),
-  ('ml-twilight', 'Mobile Legends', 'Paket', 'Twilight Pass', 145000, 152000, 6, 11),
-  ('ml-starlight', 'Mobile Legends', 'Paket', 'Starlight', 149000, 156000, 6, 12)
+-- 7. Seed: games
+insert into public.games (slug, name, publisher, category, cover_url, description, sort_order) values
+  ('mobile-legends', 'Mobile Legends', 'Moonton', 'populer',
+    '/images/73f2aa19-ccb6-481f-85c5-3f867e3b2a1f.png',
+    'Top up diamond Mobile Legends harga termurah.', 1),
+  ('free-fire', 'Free Fire', 'Garena', 'populer',
+    '/images/9b0ee7e6-306d-4168-83f4-93b4c6e5aee5.webp',
+    'Top up diamond Free Fire proses instan.', 2),
+  ('pubg-mobile', 'PUBG Mobile', 'Tencent', 'populer',
+    '/images/a14f845b-125a-4af4-bca2-1de3d469f6fd.png',
+    'Top up UC PUBG Mobile aman dan cepat.', 3),
+  ('genshin-impact', 'Genshin Impact', 'HoYoverse', 'populer',
+    '/images/22a5de62-a708-4599-9068-13a7300bfefb.png',
+    'Top up Genesis Crystal Genshin Impact original.', 4),
+  ('magic-chess', 'Magic Chess: Go Go', 'Moonton', 'populer',
+    '/images/aad53178-087b-4d6c-8ad1-daebad3f6cf0.png',
+    'Top up Magic Chess Go Go chip.', 5),
+  ('valorant', 'Valorant', 'Riot Games', 'topup', null, 'Valorant Points.', 6)
+on conflict (slug) do nothing;
+
+-- 8. Seed: products (use game slug → join via subquery)
+insert into public.products (slug, game_id, game, category, denomination, price_idr, base_price_idr, cashback_pct, sort_order)
+values
+  ('ml-5',     (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '5 Diamond',    1500,   1700,  4, 1),
+  ('ml-12',    (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '12 Diamond',   3400,   3700,  4, 2),
+  ('ml-28',    (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '28 Diamond',   7900,   8500,  4, 3),
+  ('ml-86',    (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '86 Diamond',  23000,  25000,  5, 4),
+  ('ml-172',   (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '172 Diamond', 46000,  49000,  5, 5),
+  ('ml-257',   (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '257 Diamond', 68500,  72000,  6, 6),
+  ('ml-706',   (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '706 Diamond',184000, 192000,  7, 7),
+  ('ml-1412',  (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '1412 Diamond',362000,378000, 7, 8),
+  ('ml-2195',  (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '2195 Diamond',540000,565000, 8, 9),
+  ('ml-weekly',(select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Paket',   'Weekly Pass', 27500, 29500, 4, 10),
+  ('ml-twilight',(select id from public.games where slug='mobile-legends'),'Mobile Legends','Paket','Twilight Pass',145000,152000,6,11),
+  ('ml-starlight',(select id from public.games where slug='mobile-legends'),'Mobile Legends','Paket','Starlight',   149000,156000,6,12),
+  ('ff-70',    (select id from public.games where slug='free-fire'),     'Free Fire',      'Diamond', '70 Diamond',  10000,  11000,  5, 13),
+  ('ff-355',   (select id from public.games where slug='free-fire'),     'Free Fire',      'Diamond', '355 Diamond', 50000,  53000,  6, 14),
+  ('ff-720',   (select id from public.games where slug='free-fire'),     'Free Fire',      'Diamond', '720 Diamond',100000, 105000,  7, 15),
+  ('pubg-60',  (select id from public.games where slug='pubg-mobile'),   'PUBG Mobile',    'UC',      '60 UC',       14000,  15000,  5, 16),
+  ('pubg-325', (select id from public.games where slug='pubg-mobile'),   'PUBG Mobile',    'UC',      '325 UC',      75000,  80000,  6, 17),
+  ('pubg-660', (select id from public.games where slug='pubg-mobile'),   'PUBG Mobile',    'UC',      '660 UC',     150000, 158000,  7, 18),
+  ('gi-60',    (select id from public.games where slug='genshin-impact'),'Genshin Impact', 'Genesis', '60 Genesis',  16000,  17500,  5, 19),
+  ('gi-300',   (select id from public.games where slug='genshin-impact'),'Genshin Impact', 'Genesis', '300 Genesis', 78000,  82000,  6, 20),
+  ('gi-980',   (select id from public.games where slug='genshin-impact'),'Genshin Impact', 'Genesis', '980 Genesis',245000, 258000,  7, 21),
+  ('val-125',  (select id from public.games where slug='valorant'),      'Valorant',       'Points',  '125 Points',  15000,  16500,  5, 22),
+  ('val-700',  (select id from public.games where slug='valorant'),      'Valorant',       'Points',  '700 Points',  80000,  85000,  6, 23)
 on conflict (slug) do nothing;
 
 -- 8. Seed: payment methods (used by /topup)

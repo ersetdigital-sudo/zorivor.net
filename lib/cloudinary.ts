@@ -84,3 +84,49 @@ export async function deactivateQris(id: string) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+export async function updateGameCover(input: {
+  gameId: string;
+  publicId: string;
+  url: string;
+}) {
+  const supabase = await createClient();
+  const { data: role } = await supabase
+    .from("admin_roles")
+    .select("user_id")
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+  if (!role) throw new Error("Forbidden");
+
+  const { error } = await supabase
+    .from("games")
+    .update({
+      cover_public_id: input.publicId,
+      cover_url: input.url,
+    })
+    .eq("id", input.gameId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateProductIcon(input: {
+  productId: string;
+  publicId: string;
+  url: string;
+}) {
+  const supabase = await createClient();
+  const { data: role } = await supabase
+    .from("admin_roles")
+    .select("user_id")
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+  if (!role) throw new Error("Forbidden");
+
+  const { error } = await supabase
+    .from("products")
+    .update({
+      icon_public_id: input.publicId,
+      icon_url: input.url,
+    })
+    .eq("id", input.productId);
+  if (error) throw new Error(error.message);
+}

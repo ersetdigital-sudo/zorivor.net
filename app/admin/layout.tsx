@@ -8,6 +8,7 @@ import {
   IconCreditCard,
   IconSettings,
   IconLogout,
+  IconGames,
 } from "@/components/Icons";
 
 export default async function AdminLayout({
@@ -33,6 +34,7 @@ export default async function AdminLayout({
         <nav className="space-y-1 text-sm">
           <NavItem href="/admin" label="Dashboard" Icon={IconDashboard} />
           <NavItem href="/admin/orders" label="Pesanan" Icon={IconReceipt} />
+          <NavItem href="/admin/games" label="Games" Icon={IconGames} />
           <NavItem href="/admin/products" label="Produk" Icon={IconGamepad} />
           <NavItem href="/admin/payment" label="Pembayaran" Icon={IconCreditCard} />
           <NavItem href="/admin/settings" label="Pengaturan" Icon={IconSettings} />
@@ -63,6 +65,9 @@ export default async function AdminLayout({
             </Link>
             <Link href="/admin/orders" className="text-white/70">
               Pesanan
+            </Link>
+            <Link href="/admin/games" className="text-white/70">
+              Games
             </Link>
             <Link href="/admin/products" className="text-white/70">
               Produk

@@ -3,10 +3,15 @@ import TopupForm, { type TopupPageProps } from "./TopupForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function TopupPage() {
+export default async function TopupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ game?: string }>;
+}) {
   const supabase = await createClient();
+  const { game: gameParam } = await searchParams;
 
-  const [methodsRes, qrisRes, productsRes] = await Promise.all([
+  const [methodsRes, qrisRes, gamesRes] = await Promise.all([
     supabase
       .from("payment_methods")
       .select("id,code,label,group_label,fee_idr,sub_label,is_enabled,sort_order,icon_color")
@@ -19,12 +24,38 @@ export default async function TopupPage() {
       .order("created_at", { ascending: false })
       .limit(1),
     supabase
-      .from("products")
-      .select("id,slug,game,category,denomination,price_idr,cashback_pct,is_active")
+      .from("games")
+      .select("id,slug,name,publisher,cover_url,description,is_active,sort_order")
       .eq("is_active", true)
-      .eq("game", "Mobile Legends")
       .order("sort_order", { ascending: true }),
   ]);
+
+  // Determine which game to show
+  let selectedGameId: string | null = null;
+  if (gameParam) {
+    // Try by id first, then by slug
+    const found =
+      gamesRes.data?.find((g) => g.id === gameParam) ||
+      gamesRes.data?.find((g) => g.slug === gameParam);
+    if (found) selectedGameId = found.id;
+  }
+
+  // Default: pick first active game
+  if (!selectedGameId && gamesRes.data && gamesRes.data.length > 0) {
+    selectedGameId = gamesRes.data[0].id;
+  }
+
+  const selectedGame = gamesRes.data?.find((g) => g.id === selectedGameId) ?? null;
+
+  // Fetch products for selected game
+  const productsRes = selectedGameId
+    ? await supabase
+        .from("products")
+        .select("id,slug,game,category,denomination,price_idr,cashback_pct,is_active")
+        .eq("is_active", true)
+        .eq("game_id", selectedGameId)
+        .order("sort_order", { ascending: true })
+    : { data: [] };
 
   const grouped: Record<string, NonNullable<typeof methodsRes.data>> = {};
   for (const m of methodsRes.data ?? []) {
@@ -49,6 +80,9 @@ export default async function TopupPage() {
       paymentGroups={paymentGroups}
       qrisUrl={qrisRes.data?.[0]?.cloudinary_url ?? null}
       products={products}
+      games={(gamesRes.data ?? []) as never}
+      selectedGameId={selectedGameId}
+      selectedGame={selectedGame as never}
     />
   );
 }

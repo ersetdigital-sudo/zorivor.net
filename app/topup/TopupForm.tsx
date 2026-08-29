@@ -21,10 +21,24 @@ type PaymentMethod = {
   icon_color: string;
 };
 
+type Game = {
+  id: string;
+  slug: string;
+  name: string;
+  publisher: string | null;
+  cover_url: string | null;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
 export type TopupPageProps = {
   paymentGroups: { name: string; items: PaymentMethod[] }[];
   qrisUrl: string | null;
   products: Nominal[];
+  games: Game[];
+  selectedGameId: string | null;
+  selectedGame: Game | null;
 };
 
 function rp(n: number) {
@@ -51,6 +65,9 @@ export default function TopupForm({
   paymentGroups,
   qrisUrl,
   products,
+  games,
+  selectedGameId,
+  selectedGame,
 }: TopupPageProps) {
   const [uid, setUid] = useState("");
   const [zid, setZid] = useState("");
@@ -141,21 +158,77 @@ export default function TopupForm({
             <span>/</span>
             <a href="/#games" className="hover:text-white">Top Up</a>
             <span>/</span>
-            <span className="text-white/70">Mobile Legends</span>
+            <span className="text-white/70">{selectedGame?.name ?? "Pilih Game"}</span>
           </nav>
+
+          {games.length > 0 && (
+            <div className="mb-6">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+                Pilih Game
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {games.map((g) => {
+                  const isActive = g.id === selectedGameId;
+                  return (
+                    <a
+                      key={g.id}
+                      href={`/topup?game=${g.id}`}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm transition ${
+                        isActive
+                          ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                          : "border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      {g.cover_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={g.cover_url}
+                          alt={g.name}
+                          className="h-6 w-6 rounded object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-6 w-6 place-items-center rounded bg-violet-500/30 text-xs">
+                          🎮
+                        </span>
+                      )}
+                      <span>{g.name}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-5">
             <div
-              className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl md:h-24 md:w-24"
-              style={{ background: "linear-gradient(140deg,#7c5cff,#5b8cff)" }}
+              className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl md:h-24 md:w-24"
+              style={{
+                background: selectedGame?.cover_url
+                  ? "transparent"
+                  : "linear-gradient(140deg,#7c5cff,#5b8cff)",
+              }}
             >
-              <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3 4 7v5c0 5 3.4 8.2 8 9 4.6-.8 8-4 8-9V7l-8-4Z" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
-                <path d="m9 12 2 2 4-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              {selectedGame?.cover_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={selectedGame.cover_url}
+                  alt={selectedGame.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3 4 7v5c0 5 3.4 8.2 8 9 4.6-.8 8-4 8-9V7l-8-4Z" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
+                  <path d="m9 12 2 2 4-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold md:text-3xl">Mobile Legends: Bang Bang</h1>
-              <div className="mt-1 text-sm text-white/45">Moonton</div>
+              <h1 className="text-2xl font-extrabold md:text-3xl">
+                {selectedGame?.name ?? "Pilih Game"}
+              </h1>
+              <div className="mt-1 text-sm text-white/45">
+                {selectedGame?.publisher ?? ""}
+              </div>
               <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                 <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-white/65">
                   Proses otomatis

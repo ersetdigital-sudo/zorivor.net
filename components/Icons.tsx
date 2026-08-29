@@ -63,6 +63,27 @@ export function IconGamepad(props: IconProps) {
   );
 }
 
+export function IconGames(props: IconProps) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <rect x="2" y="6" width="9" height="12" rx="2" />
+      <rect x="13" y="6" width="9" height="12" rx="2" />
+      <path d="M5 10v.01M5 14v.01" />
+      <path d="M16 11h2M17 10v2" />
+    </svg>
+  );
+}
+
 export function IconSettings(props: IconProps) {
   return (
     <svg

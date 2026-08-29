@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+export type LandingCard = {
+  id: string;
+  name: string;
+  publisher: string;
+  category: string;
+  cover?: string | null;
+  bg: string;
+};
+
 type Card = {
   name: string;
   publisher: string;
@@ -10,6 +19,7 @@ type Card = {
   cover?: string;
   bg?: string;
   icon?: React.ReactNode;
+  href?: string;
 };
 
 const Star = () => (
@@ -211,8 +221,30 @@ const tabs: { key: Card["cat"]; label: string }[] = [
   { key: "hiburan", label: "Entertainment" },
 ];
 
-export function Products() {
+export function Products({ dynamicCards = [] }: { dynamicCards?: LandingCard[] }) {
   const [active, setActive] = useState<Card["cat"]>("populer");
+
+  // Merge dynamic DB-driven cards with static catalog
+  const dynamicAsCards: Card[] = dynamicCards.map((c) => ({
+    name: c.name,
+    publisher: c.publisher,
+    sold: "0",
+    cat:
+      c.category === "steam"
+        ? "steam"
+        : c.category === "voucher"
+        ? "voucher"
+        : c.category === "hiburan"
+        ? "hiburan"
+        : c.category === "topup"
+        ? "topup"
+        : "populer",
+    cover: c.cover ?? undefined,
+    bg: c.bg,
+    href: `/topup?game=${c.id}`,
+  }));
+
+  const allCards: Card[] = [...dynamicAsCards, ...cards];
 
   return (
     <section id="games" className="relative mx-auto max-w-6xl px-5 py-16">
@@ -237,12 +269,12 @@ export function Products() {
         ))}
       </div>
       <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {cards
+        {allCards
           .filter((c) => c.cat === active)
           .map((c) => (
             <a
-              key={c.name}
-              href="/topup"
+              key={c.name + (c.href ?? "")}
+              href={c.href ?? "/topup"}
               data-cat={c.cat}
               className="pcard card group overflow-hidden p-0 transition"
             >
