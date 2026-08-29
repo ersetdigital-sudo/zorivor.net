@@ -84,13 +84,13 @@ export function GamesTable({
         />
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {games.map((g) => (
           <div
             key={g.id}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]"
+            className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition hover:border-white/20"
           >
-            <div className="relative aspect-square w-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20">
+            <div className="relative w-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20" style={{ aspectRatio: "3/4" }}>
               {g.cover_url ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -99,7 +99,7 @@ export function GamesTable({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-3xl text-white/30">
+                <div className="flex h-full w-full items-center justify-center text-2xl text-white/30">
                   🎮
                 </div>
               )}
@@ -111,19 +111,16 @@ export function GamesTable({
                 />
               )}
             </div>
-            <div className="p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-medium">{g.name}</div>
-                  <div className="text-xs text-white/60">
+            <div className="p-2.5">
+              <div className="flex items-start justify-between gap-1.5">
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-semibold">{g.name}</div>
+                  <div className="truncate text-[11px] text-white/50">
                     {g.publisher ?? "-"} · {g.category}
-                  </div>
-                  <div className="font-mono text-[10px] text-white/40">
-                    {g.slug}
                   </div>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
                     g.is_active
                       ? "bg-emerald-500/15 text-emerald-300"
                       : "bg-white/5 text-white/50"
@@ -132,24 +129,24 @@ export function GamesTable({
                   {g.is_active ? "Aktif" : "Off"}
                 </span>
               </div>
-              <div className="mt-2 flex gap-1">
+              <div className="mt-1.5 flex gap-1">
                 <button
                   onClick={() => toggle(g.id, !g.is_active)}
                   disabled={pending}
-                  className="flex-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/80 hover:bg-white/10 disabled:opacity-50"
+                  className="flex-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-1 text-[11px] text-white/80 hover:bg-white/10 disabled:opacity-50"
                 >
                   {g.is_active ? "Off" : "On"}
                 </button>
                 <a
                   href={`/admin/games/${g.id}`}
-                  className="flex-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-center text-xs text-white/80 hover:bg-white/10"
+                  className="flex-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-1 text-center text-[11px] text-white/80 hover:bg-white/10"
                 >
                   Produk
                 </a>
                 <button
                   onClick={() => remove(g.id, g.name)}
                   disabled={pending}
-                  className="rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                  className="rounded-md bg-red-500/10 px-1.5 py-1 text-[11px] text-red-300 hover:bg-red-500/20 disabled:opacity-50"
                 >
                   <IconTrash />
                 </button>
