@@ -24,8 +24,9 @@ export async function signUploadParams(folder = "qris") {
     );
   }
   // Crypto-compatible HMAC-SHA1 signature for cloudinary upload params.
+  // Cloudinary string-to-sign = "<sorted_params><api_secret>"
   const params = `folder=${folder}&timestamp=${timestamp}`;
-  const sig = await hmacSha1Hex(params, API_SECRET);
+  const sig = await hmacSha1Hex(params + API_SECRET);
 
   return {
     cloudName: CLOUD_NAME,
