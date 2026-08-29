@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import Swiper from "swiper";
 import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
@@ -9,12 +10,32 @@ import "swiper/css/pagination";
 type Slide = {
   src: string;
   alt: string;
+  // Source dimensions of the file (used by next/image to prevent CLS)
+  width: number;
+  height: number;
 };
 
+// Real file is 2304×963 (2.39:1). next/image generates the right
+// responsive sizes via deviceSizes on the <Image>.
 const SLIDES: Slide[] = [
-  { src: "/images/hero-slide-1.png", alt: "Top up game tanpa biaya admin" },
-  { src: "/images/hero-slide-2.png", alt: "Cashback 20% di transaksi pertama" },
-  { src: "/images/hero-slide-3.png", alt: "Pesan 24 jam, item langsung masuk" },
+  {
+    src: "/images/hero-slide-1.png",
+    alt: "Top up game tanpa biaya admin",
+    width: 2304,
+    height: 963,
+  },
+  {
+    src: "/images/hero-slide-2.png",
+    alt: "Cashback 20% di transaksi pertama",
+    width: 2304,
+    height: 963,
+  },
+  {
+    src: "/images/hero-slide-3.png",
+    alt: "Pesan 24 jam, item langsung masuk",
+    width: 2304,
+    height: 963,
+  },
 ];
 
 export function HeroBanner() {
@@ -43,14 +64,15 @@ export function HeroBanner() {
                   className="bslide relative block w-full overflow-hidden"
                   aria-label={s.alt}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={s.src}
                     alt={s.alt}
-                    width={2304}
-                    height={963}
+                    width={s.width}
+                    height={s.height}
+                    sizes="(min-width: 1152px) 1152px, 100vw"
+                    quality={75}
+                    priority={i === 0}
                     loading={i === 0 ? "eager" : "lazy"}
-                    decoding="async"
                     className="block h-auto w-full"
                   />
                 </a>

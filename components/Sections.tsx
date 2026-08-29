@@ -1,33 +1,3 @@
-export function CashbackBanner() {
-  return (
-    <section className="mx-auto max-w-6xl px-5 pb-16">
-      <div
-        className="rise relative overflow-hidden rounded-[24px] border border-white/10 p-7 md:p-10"
-        style={{ background: "linear-gradient(100deg,rgba(124,92,255,.30),rgba(34,225,196,.14))" }}
-      >
-        <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" className="shrink-0">
-              <path d="M3 10h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9Z" stroke="#FFC53D" strokeWidth="1.6" />
-              <path d="M2 6h20v4H2z" stroke="#FFC53D" strokeWidth="1.6" />
-              <path d="M12 6v14" stroke="#FFC53D" strokeWidth="1.6" />
-            </svg>
-            <div>
-              <h3 className="text-lg font-bold md:text-2xl">Masuk &amp; kumpulin koin cashback</h3>
-              <p className="mt-1 text-sm text-white/65">
-                Tiap transaksi dapet koin. Tuker jadi potongan harga di top up berikutnya.
-              </p>
-            </div>
-          </div>
-          <a href="#" className="btn shrink-0 rounded-xl px-6 py-3 font-semibold text-white">
-            Masuk Sekarang
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function PaymentMethods() {
   const list = [
     "QRIS",

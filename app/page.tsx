@@ -3,7 +3,6 @@ import { HeroBanner } from "@/components/HeroBanner";
 import { Ticker } from "@/components/Ticker";
 import { Products } from "@/components/Products";
 import {
-  CashbackBanner,
   PaymentMethods,
   HowItWorks,
   Why,
@@ -50,7 +49,6 @@ export default async function Home() {
       <HeroBanner />
       <Ticker />
       <Products dynamicCards={dynamicCards} />
-      <CashbackBanner />
       <PaymentMethods />
       <HowItWorks />
       <Why />
