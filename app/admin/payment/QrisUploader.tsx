@@ -40,7 +40,17 @@ export function QrisUploader({ signParams }: { signParams: SignParams }) {
       );
       if (!res.ok) {
         const txt = await res.text();
-        throw new Error(`Cloudinary upload failed: ${txt}`);
+        let msg = txt;
+        try {
+          const parsed = JSON.parse(txt);
+          msg = parsed?.error?.message ?? txt;
+        } catch {}
+        if (/cloud_name.*disabled/i.test(msg)) {
+          throw new Error(
+            `Cloudinary cloud "${signParams.cloudName}" sedang disabled di sisi Cloudinary. Aktifkan dulu di dashboard Cloudinary → Settings → re-enable cloud, lalu coba lagi.`
+          );
+        }
+        throw new Error(`Cloudinary: ${msg}`);
       }
       const json = await res.json();
 

@@ -60,7 +60,17 @@ export function GameCoverUploader({
       );
       if (!res.ok) {
         const t = await res.text();
-        throw new Error(`Cloudinary: ${t}`);
+        let msg = t;
+        try {
+          const parsed = JSON.parse(t);
+          msg = parsed?.error?.message ?? t;
+        } catch {}
+        if (/cloud_name.*disabled/i.test(msg)) {
+          throw new Error(
+            `Cloudinary cloud "${signParams.cloudName}" disabled. Aktifkan dulu di dashboard Cloudinary.`
+          );
+        }
+        throw new Error(`Cloudinary: ${msg}`);
       }
       const json = await res.json();
 

@@ -23,20 +23,15 @@ export async function signUploadParams(folder = "qris") {
       "CLOUDINARY_API_SECRET not set — configure it in .env.local or Vercel env vars."
     );
   }
-  // Cloudinary signature: HMAC-SHA1("<sorted_params><api_secret>")
-  // where api_secret is appended INSIDE the message (not used as HMAC key).
+  // Cloudinary signature (per Cloudinary docs):
+  //   1. Concatenate parameters alphabetically + api_secret at end: "<params><api_secret>"
+  //   2. Hash the result with plain SHA-1 (NOT HMAC)
+  //   3. Hex-encode the digest
   const params = `folder=${folder}&timestamp=${timestamp}`;
   const message = params + API_SECRET;
   const enc = new TextEncoder();
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(API_SECRET),
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"]
-  );
-  const sigBytes = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(message));
-  const sig = Array.from(new Uint8Array(sigBytes))
+  const digest = await crypto.subtle.digest("SHA-1", enc.encode(message));
+  const sig = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
