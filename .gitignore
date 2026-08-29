@@ -14,3 +14,5 @@ dist/
 .vscode
 .turbo
 coverage/
+*.tsbuildinfo
+supabase/verify*.mjs

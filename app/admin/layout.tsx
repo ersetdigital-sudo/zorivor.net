@@ -1,14 +1,20 @@
 import Link from "next/link";
 import { getAdminUser } from "@/lib/admin";
 import { logout } from "./actions";
+import {
+  IconDashboard,
+  IconReceipt,
+  IconGamepad,
+  IconCreditCard,
+  IconSettings,
+  IconLogout,
+} from "@/components/Icons";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Middleware already enforces: only authenticated admins reach this layout.
-  // We still call getAdminUser() to get the email for the sidebar.
   const admin = await getAdminUser();
 
   return (
@@ -25,18 +31,20 @@ export default async function AdminLayout({
         </div>
 
         <nav className="space-y-1 text-sm">
-          <NavItem href="/admin" label="Dashboard" icon="📊" />
-          <NavItem href="/admin/orders" label="Pesanan" icon="🧾" />
-          <NavItem href="/admin/products" label="Produk" icon="🎮" />
-          <NavItem href="/admin/settings" label="Pengaturan" icon="⚙️" />
+          <NavItem href="/admin" label="Dashboard" Icon={IconDashboard} />
+          <NavItem href="/admin/orders" label="Pesanan" Icon={IconReceipt} />
+          <NavItem href="/admin/products" label="Produk" Icon={IconGamepad} />
+          <NavItem href="/admin/payment" label="Pembayaran" Icon={IconCreditCard} />
+          <NavItem href="/admin/settings" label="Pengaturan" Icon={IconSettings} />
         </nav>
 
         <form action={logout} className="absolute bottom-6 left-6 right-6">
           <button
             type="submit"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70 transition hover:bg-white/[0.06]"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70 transition hover:bg-white/[0.06]"
           >
-            Keluar
+            <IconLogout />
+            <span>Keluar</span>
           </button>
         </form>
       </aside>
@@ -49,7 +57,7 @@ export default async function AdminLayout({
               <button className="text-xs text-white/60 underline">Keluar</button>
             </form>
           </div>
-          <nav className="mt-3 flex gap-3 text-sm">
+          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
             <Link href="/admin" className="text-white/70">
               Dashboard
             </Link>
@@ -58,6 +66,9 @@ export default async function AdminLayout({
             </Link>
             <Link href="/admin/products" className="text-white/70">
               Produk
+            </Link>
+            <Link href="/admin/payment" className="text-white/70">
+              Pembayaran
             </Link>
             <Link href="/admin/settings" className="text-white/70">
               Settings
@@ -73,18 +84,18 @@ export default async function AdminLayout({
 function NavItem({
   href,
   label,
-  icon,
+  Icon,
 }: {
   href: string;
   label: string;
-  icon: string;
+  Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }) {
   return (
     <Link
       href={href}
       className="flex items-center gap-3 rounded-lg px-3 py-2 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
     >
-      <span className="w-5 text-center">{icon}</span>
+      <Icon className="shrink-0" />
       <span>{label}</span>
     </Link>
   );

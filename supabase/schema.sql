@@ -128,6 +128,61 @@ create policy "admins can manage site_settings"
   using (public.is_admin())
   with check (public.is_admin());
 
+-- 4b. Payment methods (per-method config: name, group, fee, enabled, icon)
+create table if not exists public.payment_methods (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  label text not null,
+  group_label text not null,
+  fee_idr integer default 0,
+  sub_label text,
+  is_enabled boolean default true,
+  sort_order integer default 0,
+  icon_color text default '#7C5CFF',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.payment_methods enable row level security;
+
+drop policy if exists "public can read enabled payment_methods" on public.payment_methods;
+create policy "public can read enabled payment_methods"
+  on public.payment_methods for select using (is_enabled = true);
+
+drop policy if exists "admins can manage payment_methods" on public.payment_methods;
+create policy "admins can manage payment_methods"
+  on public.payment_methods for all
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+-- 4c. QRIS images (Cloudinary-backed uploads — stores metadata + URL)
+create table if not exists public.qris_uploads (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  cloudinary_public_id text not null,
+  cloudinary_url text not null,
+  width integer,
+  height integer,
+  bytes integer,
+  is_active boolean default true,
+  uploaded_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+alter table public.qris_uploads enable row level security;
+
+drop policy if exists "public can read active qris" on public.qris_uploads;
+create policy "public can read active qris"
+  on public.qris_uploads for select using (is_active = true);
+
+drop policy if exists "admins can manage qris" on public.qris_uploads;
+create policy "admins can manage qris"
+  on public.qris_uploads for all
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
 -- 5. Updated_at triggers
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
@@ -144,6 +199,11 @@ create trigger trg_products_updated
 drop trigger if exists trg_orders_updated on public.orders;
 create trigger trg_orders_updated
   before update on public.orders
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_payment_methods_updated on public.payment_methods;
+create trigger trg_payment_methods_updated
+  before update on public.payment_methods
   for each row execute function public.set_updated_at();
 
 -- 6. Seed: default site settings
@@ -169,3 +229,18 @@ insert into public.products (slug, game, category, denomination, price_idr, base
   ('ml-twilight', 'Mobile Legends', 'Paket', 'Twilight Pass', 145000, 152000, 6, 11),
   ('ml-starlight', 'Mobile Legends', 'Paket', 'Starlight', 149000, 156000, 6, 12)
 on conflict (slug) do nothing;
+
+-- 8. Seed: payment methods (used by /topup)
+insert into public.payment_methods (code, label, group_label, fee_idr, sub_label, is_enabled, sort_order, icon_color) values
+  ('qris', 'QRIS', 'QRIS', 0, 'Semua e-wallet & m-banking', true, 1, '#22E1C4'),
+  ('dana', 'DANA', 'E-Wallet', 0, 'Instan', true, 2, '#1E4FFF'),
+  ('gopay', 'GoPay', 'E-Wallet', 0, 'Instan', true, 3, '#00AA13'),
+  ('ovo', 'OVO', 'E-Wallet', 0, 'Instan', true, 4, '#4F2D7F'),
+  ('shopeepay', 'ShopeePay', 'E-Wallet', 0, 'Instan', true, 5, '#EE4D2D'),
+  ('bca_va', 'BCA VA', 'Virtual Account', 4000, null, true, 6, '#003D7A'),
+  ('bri_va', 'BRI VA', 'Virtual Account', 4000, null, true, 7, '#005E9E'),
+  ('mandiri_va', 'Mandiri VA', 'Virtual Account', 4000, null, true, 8, '#FFB300'),
+  ('bni_va', 'BNI VA', 'Virtual Account', 4000, null, true, 9, '#F08200'),
+  ('alfamart', 'Alfamart', 'Gerai Retail', 5000, null, true, 10, '#E11A1A'),
+  ('indomaret', 'Indomaret', 'Gerai Retail', 5000, null, true, 11, '#E11A1A')
+on conflict (code) do nothing;
