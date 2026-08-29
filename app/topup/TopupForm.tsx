@@ -3,20 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createOrder } from "../actions";
 
-const nominals = [
-  { label: "5 Diamonds", price: 1500 },
-  { label: "12 Diamonds", price: 3400 },
-  { label: "28 Diamonds", price: 7900 },
-  { label: "86 Diamonds", price: 23000, default: true },
-  { label: "172 Diamonds", price: 46000, hemat: true },
-  { label: "257 Diamonds", price: 68500 },
-  { label: "706 Diamonds", price: 184000 },
-  { label: "1.412 Diamonds", price: 362000 },
-  { label: "2.195 Diamonds", price: 540000 },
-  { label: "Weekly Pass", price: 27500, paket: true },
-  { label: "Twilight Pass", price: 145000, paket: true },
-  { label: "Starlight", price: 149000, paket: true },
-];
+type Nominal = {
+  id: string;
+  slug: string;
+  label: string;
+  price: number;
+  category: "diamond" | "paket";
+};
 
 type PaymentMethod = {
   id: string;
@@ -31,6 +24,7 @@ type PaymentMethod = {
 export type TopupPageProps = {
   paymentGroups: { name: string; items: PaymentMethod[] }[];
   qrisUrl: string | null;
+  products: Nominal[];
 };
 
 function rp(n: number) {
@@ -56,10 +50,14 @@ function Logo() {
 export default function TopupForm({
   paymentGroups,
   qrisUrl,
+  products,
 }: TopupPageProps) {
   const [uid, setUid] = useState("");
   const [zid, setZid] = useState("");
-  const [nomIdx, setNomIdx] = useState(3);
+  const [nomIdx, setNomIdx] = useState(() => {
+    const idx = products.findIndex((p) => p.slug === "ml-86");
+    return idx >= 0 ? idx : 0;
+  });
   const [payKey, setPayKey] = useState(() => {
     const first = paymentGroups[0]?.items[0]?.label;
     return first ?? "QRIS";
@@ -75,8 +73,9 @@ export default function TopupForm({
   const payItem =
     flatMethods.find((i) => i.label === payKey) ?? flatMethods[0];
 
-  const nom = nominals[nomIdx];
-  const total = nom.price + (payItem?.fee_idr ?? 0);
+  const nominals = products;
+  const nom = nominals[nomIdx] ?? nominals[0];
+  const total = (nom?.price ?? 0) + (payItem?.fee_idr ?? 0);
 
   useEffect(() => {
     document.body.classList.add("topup-page");
@@ -95,22 +94,8 @@ export default function TopupForm({
     setSubmitting(true);
 
     const wa = (document.getElementById("wa") as HTMLInputElement | null)?.value ?? "";
-    const slugMap = [
-      "ml-5",
-      "ml-12",
-      "ml-28",
-      "ml-86",
-      "ml-172",
-      "ml-257",
-      "ml-706",
-      "ml-1412",
-      "ml-2195",
-      "ml-weekly",
-      "ml-twilight",
-      "ml-starlight",
-    ];
     createOrder({
-      product_slug: slugMap[nomIdx] ?? "ml-86",
+      product_slug: nom?.slug ?? "ml-86",
       game_user_id: uid,
       game_server_id: zid,
       whatsapp: wa,
@@ -225,56 +210,50 @@ export default function TopupForm({
               <div className="mt-5 text-xs font-semibold uppercase tracking-wider text-white/40">Diamond</div>
               <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {nominals
-                  .filter((n) => !n.paket)
-                  .map((n) => {
-                    const realIndex = nominals.indexOf(n);
-                    return (
-                      <label key={n.label} className="opt">
-                        <input
-                          type="radio"
-                          name="nom"
-                          checked={nomIdx === realIndex}
-                          onChange={() => setNomIdx(realIndex)}
-                        />
-                        <div className="box">
-                          {n.hemat ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold">{n.label}</span>
-                              <span className="rounded bg-[#ff4d8d]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#ff9ec4]">
-                                HEMAT
-                              </span>
-                            </div>
-                          ) : (
+                  .filter((n) => n.category === "diamond")
+                  .map((n, i) => (
+                    <label key={n.id} className="opt">
+                      <input
+                        type="radio"
+                        name="nom"
+                        checked={nomIdx === nominals.indexOf(n)}
+                        onChange={() => setNomIdx(nominals.indexOf(n))}
+                      />
+                      <div className="box">
+                        <div className="text-sm font-semibold">{n.label}</div>
+                        <div className="mt-1 text-xs text-white/50">{rp(n.price)}</div>
+                      </div>
+                    </label>
+                  ))}
+                {nominals.filter((n) => n.category === "diamond").length === 0 && (
+                  <div className="col-span-full rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center text-xs text-white/50">
+                    Belum ada produk
+                  </div>
+                )}
+              </div>
+              {nominals.some((n) => n.category === "paket") && (
+                <>
+                  <div className="mt-6 text-xs font-semibold uppercase tracking-wider text-white/40">Paket khusus</div>
+                  <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                    {nominals
+                      .filter((n) => n.category === "paket")
+                      .map((n) => (
+                        <label key={n.id} className="opt">
+                          <input
+                            type="radio"
+                            name="nom"
+                            checked={nomIdx === nominals.indexOf(n)}
+                            onChange={() => setNomIdx(nominals.indexOf(n))}
+                          />
+                          <div className="box">
                             <div className="text-sm font-semibold">{n.label}</div>
-                          )}
-                          <div className="mt-1 text-xs text-white/50">{rp(n.price)}</div>
-                        </div>
-                      </label>
-                    );
-                  })}
-              </div>
-              <div className="mt-6 text-xs font-semibold uppercase tracking-wider text-white/40">Paket khusus</div>
-              <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {nominals
-                  .filter((n) => n.paket)
-                  .map((n) => {
-                    const realIndex = nominals.indexOf(n);
-                    return (
-                      <label key={n.label} className="opt">
-                        <input
-                          type="radio"
-                          name="nom"
-                          checked={nomIdx === realIndex}
-                          onChange={() => setNomIdx(realIndex)}
-                        />
-                        <div className="box">
-                          <div className="text-sm font-semibold">{n.label}</div>
-                          <div className="mt-1 text-xs text-white/50">{rp(n.price)}</div>
-                        </div>
-                      </label>
-                    );
-                  })}
-              </div>
+                            <div className="mt-1 text-xs text-white/50">{rp(n.price)}</div>
+                          </div>
+                        </label>
+                      ))}
+                  </div>
+                </>
+              )}
             </section>
 
             <section className="card p-5 md:p-6">

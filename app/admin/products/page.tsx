@@ -31,7 +31,6 @@ export default async function AdminProductsPage() {
             <thead className="bg-white/5 text-left text-xs uppercase text-white/50">
               <tr>
                 <th className="px-3 py-2">Game / Item</th>
-                <th className="px-3 py-2">Slug</th>
                 <th className="px-3 py-2">Harga Jual</th>
                 <th className="px-3 py-2">Cashback</th>
                 <th className="px-3 py-2">Stock</th>
@@ -46,7 +45,7 @@ export default async function AdminProductsPage() {
               {list.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="px-3 py-10 text-center text-white/50"
                   >
                     Belum ada produk

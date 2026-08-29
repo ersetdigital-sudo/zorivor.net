@@ -13,7 +13,6 @@ export function ProductRow({ product }: { product: Product }) {
     startTransition(async () => {
       await upsertProduct({
         id: product.id,
-        slug: draft.slug,
         game: draft.game,
         category: draft.category,
         denomination: draft.denomination,
@@ -32,7 +31,7 @@ export function ProductRow({ product }: { product: Product }) {
   }
 
   function remove() {
-    if (!confirm(`Hapus ${product.slug}?`)) return;
+    if (!confirm(`Hapus ${product.denomination}?`)) return;
     startTransition(async () => {
       await deleteProduct(product.id);
     });
@@ -55,13 +54,6 @@ export function ProductRow({ product }: { product: Product }) {
             }
             className="mt-1 w-full rounded border border-white/10 bg-black/40 px-2 py-1 text-xs text-white"
             placeholder="Denomination"
-          />
-        </td>
-        <td className="px-3 py-3">
-          <input
-            value={draft.slug}
-            onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
-            className="w-full rounded border border-white/10 bg-black/40 px-2 py-1 text-xs text-white"
           />
         </td>
         <td className="px-3 py-3">
@@ -151,9 +143,6 @@ export function ProductRow({ product }: { product: Product }) {
         <div className="text-xs text-white/60">
           {product.category} · {product.denomination}
         </div>
-      </td>
-      <td className="px-3 py-3 font-mono text-xs text-white/70">
-        {product.slug}
       </td>
       <td className="px-3 py-3">
         <div className="font-medium">

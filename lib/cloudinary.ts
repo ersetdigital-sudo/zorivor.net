@@ -23,10 +23,22 @@ export async function signUploadParams(folder = "qris") {
       "CLOUDINARY_API_SECRET not set — configure it in .env.local or Vercel env vars."
     );
   }
-  // Crypto-compatible HMAC-SHA1 signature for cloudinary upload params.
-  // Cloudinary string-to-sign = "<sorted_params><api_secret>"
+  // Cloudinary signature: HMAC-SHA1("<sorted_params><api_secret>")
+  // where api_secret is appended INSIDE the message (not used as HMAC key).
   const params = `folder=${folder}&timestamp=${timestamp}`;
-  const sig = await hmacSha1Hex(params + API_SECRET);
+  const message = params + API_SECRET;
+  const enc = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(API_SECRET),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"]
+  );
+  const sigBytes = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(message));
+  const sig = Array.from(new Uint8Array(sigBytes))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
   return {
     cloudName: CLOUD_NAME,
@@ -35,21 +47,6 @@ export async function signUploadParams(folder = "qris") {
     signature: sig,
     folder,
   };
-}
-
-async function hmacSha1Hex(message: string, secret: string) {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 export async function recordQrisUpload(input: {
