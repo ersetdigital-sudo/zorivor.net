@@ -60,6 +60,20 @@ export type Order = {
   updated_at: string;
 };
 
+export type PaymentMethod = {
+  id: string;
+  code: string;
+  label: string;
+  group_label: string;
+  fee_idr: number;
+  sub_label: string | null;
+  is_enabled: boolean;
+  sort_order: number;
+  icon_color: string;
+  image_public_id: string | null;
+  image_url: string | null;
+};
+
 export type SiteSetting = {
   key: string;
   value: unknown;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash } from "@/components/Icons";
 
@@ -14,9 +14,25 @@ type Method = {
   is_enabled: boolean;
   sort_order: number;
   icon_color: string;
+  image_url: string | null;
+  image_public_id: string | null;
 };
 
-export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
+type SignParams = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+};
+
+export function PaymentMethodsTable({
+  methods,
+  signParams,
+}: {
+  methods: Method[];
+  signParams: SignParams | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
@@ -73,6 +89,7 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
             <thead className="bg-white/[0.02] text-left text-xs text-white/40">
               <tr>
                 <th className="px-4 py-2">Label</th>
+                <th className="px-4 py-2">Image</th>
                 <th className="px-4 py-2">Code</th>
                 <th className="px-4 py-2">Biaya</th>
                 <th className="px-4 py-2">Sub</th>
@@ -91,6 +108,9 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
                       />
                       <span className="font-medium">{m.label}</span>
                     </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <MethodImageCell method={m} signParams={signParams} />
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs text-white/60">
                     {m.code}
@@ -286,5 +306,125 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+function MethodImageCell({
+  method,
+  signParams,
+}: {
+  method: Method;
+  signParams: SignParams | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!signParams) {
+      setError("Cloudinary belum dikonfigurasi");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", signParams.apiKey);
+      fd.append("timestamp", String(signParams.timestamp));
+      fd.append("signature", signParams.signature);
+      fd.append("folder", "payment-methods");
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${signParams.cloudName}/image/upload`,
+        { method: "POST", body: fd }
+      );
+      if (!res.ok) {
+        const t = await res.text();
+        let msg = t;
+        try {
+          msg = JSON.parse(t)?.error?.message ?? t;
+        } catch {}
+        if (/cloud_name.*disabled/i.test(msg)) {
+          throw new Error(`Cloudinary cloud disabled. Aktifkan di dashboard Cloudinary.`);
+        }
+        throw new Error(msg);
+      }
+      const json = await res.json();
+
+      const saveRes = await fetch(
+        `/api/admin/payment-methods/${method.id}/image`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            publicId: json.public_id,
+            url: json.secure_url,
+          }),
+        }
+      );
+      if (!saveRes.ok) throw new Error("Gagal simpan");
+
+      if (inputRef.current) inputRef.current.value = "";
+      window.location.reload();
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  if (method.image_url) {
+    return (
+      <div className="flex items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={method.image_url}
+          alt={method.label}
+          className="h-8 w-8 rounded object-contain bg-white"
+        />
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/80 hover:bg-white/10"
+          disabled={uploading}
+        >
+          Ganti
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={upload}
+        />
+        {error && (
+          <span className="text-xs text-red-300">{error}</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading || !signParams}
+        className="rounded-md border border-dashed border-white/15 bg-white/[0.04] px-2 py-1 text-xs text-white/60 hover:bg-white/[0.08] disabled:opacity-50"
+      >
+        {uploading ? "Uploading…" : signParams ? "Upload" : "Cloud off"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={upload}
+      />
+      {error && (
+        <div className="mt-1 text-xs text-red-300">{error}</div>
+      )}
+    </div>
   );
 }

@@ -42,6 +42,23 @@ export default async function AdminPaymentPage() {
     cloudinaryError = (e as Error).message;
   }
 
+  let methodSignParams:
+    | { cloudName: string; apiKey: string; timestamp: number; signature: string; folder: string }
+    | null = null;
+  try {
+    const signed = await signUploadParams("payment-methods");
+    methodSignParams = {
+      cloudName: signed.cloudName ?? "",
+      apiKey: signed.apiKey ?? "",
+      timestamp: signed.timestamp,
+      signature: signed.signature,
+      folder: signed.folder,
+    };
+  } catch {
+    // ignore — will fall back to signParams for QRIS context
+    methodSignParams = signParams;
+  }
+
   return (
     <>
       <div className="space-y-6">
@@ -90,7 +107,10 @@ export default async function AdminPaymentPage() {
             </p>
           </div>
 
-          <PaymentMethodsTable methods={(methodsRes.data ?? []) as never} />
+          <PaymentMethodsTable
+          methods={(methodsRes.data ?? []) as never}
+          signParams={methodSignParams}
+        />
         </section>
       </div>
     </>

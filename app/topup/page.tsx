@@ -14,7 +14,9 @@ export default async function TopupPage({
   const [methodsRes, qrisRes, gamesRes] = await Promise.all([
     supabase
       .from("payment_methods")
-      .select("id,code,label,group_label,fee_idr,sub_label,is_enabled,sort_order,icon_color")
+      .select(
+        "id,code,label,group_label,fee_idr,sub_label,is_enabled,sort_order,icon_color,image_url"
+      )
       .eq("is_enabled", true)
       .order("sort_order"),
     supabase

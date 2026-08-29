@@ -19,6 +19,7 @@ type PaymentMethod = {
   fee_idr: number;
   sub_label: string | null;
   icon_color: string;
+  image_url: string | null;
 };
 
 type Game = {
@@ -375,6 +376,19 @@ export default function TopupForm({
                                 alt="QRIS"
                                 className="h-32 w-32 object-contain"
                               />
+                            </div>
+                          )}
+                          {!isQris && p.image_url && (
+                            <div className="mt-2 flex items-center gap-2 rounded-lg bg-white/[0.04] p-2">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={p.image_url}
+                                alt={p.label}
+                                className="h-10 w-10 object-contain"
+                              />
+                              <span className="text-[10px] text-white/40">
+                Logo {p.label}
+                              </span>
                             </div>
                           )}
                         </label>

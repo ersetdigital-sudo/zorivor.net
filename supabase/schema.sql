@@ -173,7 +173,7 @@ create policy "admins can manage site_settings"
   using (public.is_admin())
   with check (public.is_admin());
 
--- 4b. Payment methods (per-method config: name, group, fee, enabled, icon)
+-- 4b. Payment methods (per-method config: name, group, fee, enabled, icon, image)
 create table if not exists public.payment_methods (
   id uuid primary key default gen_random_uuid(),
   code text unique not null,
@@ -184,9 +184,16 @@ create table if not exists public.payment_methods (
   is_enabled boolean default true,
   sort_order integer default 0,
   icon_color text default '#7C5CFF',
+  image_public_id text,
+  image_url text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Idempotent migration for existing prod table
+alter table public.payment_methods
+  add column if not exists image_public_id text,
+  add column if not exists image_url text;
 
 alter table public.payment_methods enable row level security;
 
