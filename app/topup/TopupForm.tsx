@@ -157,46 +157,26 @@ export default function TopupForm({
             <span>/</span>
             <a href="/#games" className="hover:text-white">Top Up</a>
             <span>/</span>
-            <span className="text-white/70">{selectedGame?.name ?? "Pilih Game"}</span>
+            {games.length > 1 ? (
+              <select
+                value={selectedGameId ?? ""}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    window.location.href = `/topup?game=${e.target.value}`;
+                  }
+                }}
+                className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-white/70 outline-none focus:border-violet-400/60"
+              >
+                {games.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-white/70">{selectedGame?.name ?? "Pilih Game"}</span>
+            )}
           </nav>
-
-          {games.length > 0 && (
-            <div className="mb-6">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/50">
-                Pilih Game
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {games.map((g) => {
-                  const isActive = g.id === selectedGameId;
-                  return (
-                    <a
-                      key={g.id}
-                      href={`/topup?game=${g.id}`}
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition ${
-                        isActive
-                          ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
-                          : "border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/[0.05]"
-                      }`}
-                    >
-                      {g.cover_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={g.cover_url}
-                          alt={g.name}
-                          className="h-6 w-6 rounded object-cover"
-                        />
-                      ) : (
-                        <span className="grid h-6 w-6 place-items-center rounded bg-violet-500/30 text-xs">
-                          🎮
-                        </span>
-                      )}
-                      <span className="whitespace-nowrap">{g.name}</span>
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div className="flex items-center gap-5">
             <div
