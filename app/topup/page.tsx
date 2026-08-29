@@ -1,7 +1,92 @@
 import { createClient } from "@/lib/supabase/server";
 import TopupForm, { type TopupPageProps } from "./TopupForm";
+import { ProductSchema } from "@/components/SeoSchemas";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ game?: string }>;
+}): Promise<Metadata> {
+  const { game: gameParam } = await searchParams;
+  if (!gameParam) {
+    return {
+      title: "Top Up Game — Zorivor",
+      description:
+        "Top up game favoritmu dengan harga final termurah. Proses instan, tanpa biaya admin.",
+      openGraph: {
+        title: "Top Up Game — Zorivor",
+        description:
+          "Top up game favoritmu dengan harga final termurah. Proses instan, tanpa biaya admin.",
+        url: "https://zorivor.net/topup",
+        type: "website",
+      },
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: game } = await supabase
+    .from("games")
+    .select("name,publisher,cover_url,description,slug")
+    .or(`id.eq.${gameParam},slug.eq.${gameParam}`)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!game) {
+    return {
+      title: "Top Up Game — Zorivor",
+      description: "Top up game favoritmu dengan harga final termurah.",
+    };
+  }
+
+  const title = `Top Up ${game.name} Murah & Cepat — Zorivor`;
+  const description =
+    game.description ??
+    `Top up ${game.name} dengan harga final termurah. Proses otomatis instan, tanpa biaya admin. Pembayaran QRIS, e-wallet, VA.`;
+  const ogImage = game.cover_url?.startsWith("/")
+    ? `https://zorivor.net${game.cover_url}`
+    : game.cover_url ?? "https://zorivor.net/og-image.png";
+  const gameSlug = game.slug ?? gameParam;
+
+  return {
+    title,
+    description,
+    keywords: [
+      `top up ${game.name}`,
+      `${game.name} murah`,
+      `${game.name} harga termurah`,
+      `top up ${game.name} instan`,
+      `top up ${game.name} tanpa biaya admin`,
+      game.publisher ?? "",
+    ],
+    openGraph: {
+      title,
+      description,
+      url: `https://zorivor.net/topup?game=${gameSlug}`,
+      type: "website",
+      siteName: "Zorivor",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `Top Up ${game.name}`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+    alternates: {
+      canonical: `https://zorivor.net/topup?game=${gameSlug}`,
+    },
+  };
+}
 
 export default async function TopupPage({
   searchParams,
@@ -85,13 +170,29 @@ export default async function TopupPage({
     category: (p.category === "Paket" ? "paket" : "diamond") as "paket" | "diamond",
   }));
 
+  const prices = products.map((p) => p.price).filter((p) => p > 0);
+  const lowestPrice = Math.min(...prices);
+  const highestPrice = Math.max(...prices);
+
   return (
-    <TopupForm
-      paymentGroups={paymentGroups}
-      products={products}
-      games={(gamesRes.data ?? []) as never}
-      selectedGameId={selectedGameId}
-      selectedGame={selectedGame as never}
-    />
+    <>
+      {selectedGame && (
+        <ProductSchema
+          name={selectedGame.name}
+          publisher={selectedGame.publisher}
+          cover={selectedGame.cover_url}
+          lowestPrice={lowestPrice || 0}
+          highestPrice={highestPrice || 0}
+          slug={selectedGame.slug ?? gameParam ?? ""}
+        />
+      )}
+      <TopupForm
+        paymentGroups={paymentGroups}
+        products={products}
+        games={(gamesRes.data ?? []) as never}
+        selectedGameId={selectedGameId}
+        selectedGame={selectedGame as never}
+      />
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SeoSchemas } from "@/components/SeoSchemas";
 
 export const metadata: Metadata = {
   title: "Zorivor — Top Up Game Termurah, Tanpa Biaya Admin",
@@ -73,6 +74,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
+      <SeoSchemas />
       <body className="antialiased">{children}</body>
     </html>
   );

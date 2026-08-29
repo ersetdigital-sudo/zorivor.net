@@ -12,6 +12,7 @@ import {
 import { Reveal } from "@/components/Reveal";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteSettings, waMeUrl } from "@/lib/site-settings";
+import { GameListSchema, FAQSchema } from "@/components/SeoSchemas";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,33 @@ const DEFAULT_GRADIENTS = [
   "#12161c,#0ea5e9",
   "#12161c,#a78bfa",
 ];
+
+const GAME_FAQS = [
+  {
+    q: "Apa untungnya top up di Zorivor?",
+    a: "Harga final termurah tanpa biaya admin, proses otomatis 24 jam, dan supply resmi sehingga akunmu tetap aman.",
+  },
+  {
+    q: "Game apa saja yang tersedia?",
+    a: "Semua game populer seperti Mobile Legends, Free Fire, PUBG, Genshin, Magic Chess, plus 340+ judul lain, pulsa, dan e-money.",
+  },
+  {
+    q: "Bagaimana cara top up-nya?",
+    a: "Pilih game, masukkan User ID, pilih nominal, lalu bayar. Item masuk otomatis tanpa perlu login akun game.",
+  },
+  {
+    q: "Metode pembayaran apa saja?",
+    a: "QRIS, DANA, GoPay, OVO, ShopeePay, virtual account bank, transfer bank, hingga pembayaran di gerai retail.",
+  },
+  {
+    q: "Kalau item belum masuk?",
+    a: "Hubungi CS kami lewat WhatsApp atau email. Jika pesanan gagal diproses, dana dikembalikan penuh.",
+  },
+];
+
+const WA_LINK = waMeUrl(
+  process.env.SUPPORT_WHATSAPP ?? "6281234567890"
+);
 
 export default async function Home() {
   const supabase = await createClient();
@@ -47,6 +75,8 @@ export default async function Home() {
 
   return (
     <>
+      <GameListSchema games={dynamicCards} />
+      <FAQSchema faqs={GAME_FAQS} />
       <Nav />
       <HeroBanner />
       <Ticker />
