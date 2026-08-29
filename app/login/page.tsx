@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function AdminLoginPage() {
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/admin";
@@ -91,7 +99,6 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-white/40">
-          Bukan admin?{" "}
           <a href="/" className="text-violet-300 hover:underline">
             Kembali ke situs
           </a>

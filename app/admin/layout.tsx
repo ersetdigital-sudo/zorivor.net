@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { getAdminUser } from "@/lib/admin";
 import { logout } from "./actions";
@@ -9,16 +7,9 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const h = await headers();
-  const pathname = h.get("x-pathname") ?? h.get("x-invoke-path") ?? "";
-
-  // Skip shell for the login page so unauthenticated users can see it.
-  if (pathname.endsWith("/admin/login")) {
-    return <>{children}</>;
-  }
-
+  // Middleware already enforces: only authenticated admins reach this layout.
+  // We still call getAdminUser() to get the email for the sidebar.
   const admin = await getAdminUser();
-  if (!admin) redirect("/admin/login");
 
   return (
     <div className="min-h-screen bg-[#0a0d14] text-white">
@@ -29,7 +20,7 @@ export default async function AdminLayout({
           </div>
           <div>
             <div className="font-semibold">Zorivor Admin</div>
-            <div className="text-xs text-white/50">{admin.email}</div>
+            <div className="text-xs text-white/50">{admin?.email ?? ""}</div>
           </div>
         </div>
 
