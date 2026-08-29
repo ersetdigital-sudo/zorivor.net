@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { OrderStatusActions } from "./OrderStatusActions";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -18,21 +18,45 @@ export function OrdersTable({
   const [, startTransition] = useTransition();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
 
-  // Re-sync when server props change (e.g. after router.refresh from
-  // another action, or a filter change).
+  // Track order IDs we've optimistically removed (or updated) but for
+  // which the server snapshot hasn't caught up yet. We use this to
+  // prevent the useEffect below from clobbering the local state with
+  // a stale `initialOrders` that still contains the deleted row (the
+  // cause of "deleted rows come back" bug on rapid sequential
+  // deletes).
+  const inflight = useRef<Set<string>>(new Set());
+  // Skip the first sync — the initial prop IS the source of truth.
+  const firstSync = useRef(true);
+
   useEffect(() => {
-    setOrders(initialOrders);
+    if (firstSync.current) {
+      firstSync.current = false;
+      return;
+    }
+    // On subsequent renders, strip any order that the user just
+    // deleted locally (server snapshot may not have caught up yet).
+    setOrders((prev) => {
+      if (inflight.current.size === 0) return initialOrders;
+      return initialOrders.filter((o) => !inflight.current.has(o.id));
+    });
   }, [initialOrders]);
 
   function handleDeleted(deletedId: string) {
-    // Optimistic local removal — row disappears immediately
+    inflight.current.add(deletedId);
+    // Functional update — uses latest state, not stale closure.
     setOrders((prev) => prev.filter((o) => o.id !== deletedId));
-    // Re-fetch from server to keep us in sync with any other writers
+    // Sync with server in background. Don't clear inflight until
+    // server returns a snapshot without this id.
     startTransition(() => router.refresh());
+    // Failsafe: clear after 8s in case server never returns the
+    // updated snapshot.
+    setTimeout(() => inflight.current.delete(deletedId), 8_000);
   }
 
   function handleUpdated(updated: Order) {
+    inflight.current.delete(updated.id);
     setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    startTransition(() => router.refresh());
   }
 
   if (orders.length === 0) {
@@ -59,56 +83,68 @@ export function OrdersTable({
         </thead>
         <tbody>
           {orders.map((o) => (
-            <tr
+            <OrderRow
               key={o.id}
-              className="border-t border-white/5 align-top hover:bg-white/[0.02]"
-            >
-              <td className="px-3 py-3">
-                <div className="font-mono text-xs">{o.invoice}</div>
-                <div className="text-[10px] text-white/40">
-                  {new Date(o.created_at).toLocaleString("id-ID")}
-                </div>
-              </td>
-              <td className="px-3 py-3">
-                <div className="text-white">{o.game}</div>
-                <div className="text-xs text-white/60">{o.denomination}</div>
-              </td>
-              <td className="px-3 py-3">
-                <div className="font-mono text-xs">{o.game_user_id}</div>
-                {o.whatsapp && (
-                  <div className="text-[10px] text-white/50">
-                    WA: {o.whatsapp}
-                  </div>
-                )}
-              </td>
-              <td className="px-3 py-3 text-xs">
-                {o.payment_method ?? "-"}
-              </td>
-              <td className="px-3 py-3">
-                <div className="font-medium">
-                  Rp {o.amount_idr.toLocaleString("id-ID")}
-                </div>
-                {o.cashback_idr > 0 && (
-                  <div className="text-[10px] text-emerald-300">
-                    cashback Rp {o.cashback_idr.toLocaleString("id-ID")}
-                  </div>
-                )}
-              </td>
-              <td className="px-3 py-3">
-                <StatusBadge status={o.status} />
-              </td>
-              <td className="px-3 py-3">
-                <OrderStatusActions
-                  order={o}
-                  onDeleted={handleDeleted}
-                  onUpdated={handleUpdated}
-                />
-              </td>
-            </tr>
+              order={o}
+              onDeleted={handleDeleted}
+              onUpdated={handleUpdated}
+            />
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function OrderRow({
+  order,
+  onDeleted,
+  onUpdated,
+}: {
+  order: Order;
+  onDeleted: (deletedId: string) => void;
+  onUpdated: (updated: Order) => void;
+}) {
+  return (
+    <tr className="border-t border-white/5 align-top hover:bg-white/[0.02]">
+      <td className="px-3 py-3">
+        <div className="font-mono text-xs">{order.invoice}</div>
+        <div className="text-[10px] text-white/40">
+          {new Date(order.created_at).toLocaleString("id-ID")}
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <div className="text-white">{order.game}</div>
+        <div className="text-xs text-white/60">{order.denomination}</div>
+      </td>
+      <td className="px-3 py-3">
+        <div className="font-mono text-xs">{order.game_user_id}</div>
+        {order.whatsapp && (
+          <div className="text-[10px] text-white/50">WA: {order.whatsapp}</div>
+        )}
+      </td>
+      <td className="px-3 py-3 text-xs">{order.payment_method ?? "-"}</td>
+      <td className="px-3 py-3">
+        <div className="font-medium">
+          Rp {order.amount_idr.toLocaleString("id-ID")}
+        </div>
+        {order.cashback_idr > 0 && (
+          <div className="text-[10px] text-emerald-300">
+            cashback Rp {order.cashback_idr.toLocaleString("id-ID")}
+          </div>
+        )}
+      </td>
+      <td className="px-3 py-3">
+        <StatusBadge status={order.status} />
+      </td>
+      <td className="px-3 py-3">
+        <OrderStatusActions
+          order={order}
+          onDeleted={onDeleted}
+          onUpdated={onUpdated}
+        />
+      </td>
+    </tr>
   );
 }
 
