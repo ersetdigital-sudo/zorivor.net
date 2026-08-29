@@ -11,7 +11,7 @@ export default async function TopupPage({
   const supabase = await createClient();
   const { game: gameParam } = await searchParams;
 
-  const [methodsRes, qrisRes, gamesRes] = await Promise.all([
+  const [methodsRes, gamesRes] = await Promise.all([
     supabase
       .from("payment_methods")
       .select(
@@ -19,12 +19,6 @@ export default async function TopupPage({
       )
       .eq("is_enabled", true)
       .order("sort_order"),
-    supabase
-      .from("qris_uploads")
-      .select("id,label,cloudinary_url")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(1),
     supabase
       .from("games")
       .select("id,slug,name,publisher,cover_url,description,is_active,sort_order")
@@ -94,7 +88,6 @@ export default async function TopupPage({
   return (
     <TopupForm
       paymentGroups={paymentGroups}
-      qrisUrl={qrisRes.data?.[0]?.cloudinary_url ?? null}
       products={products}
       games={(gamesRes.data ?? []) as never}
       selectedGameId={selectedGameId}

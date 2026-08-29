@@ -35,7 +35,6 @@ type Game = {
 
 export type TopupPageProps = {
   paymentGroups: { name: string; items: PaymentMethod[] }[];
-  qrisUrl: string | null;
   products: Nominal[];
   games: Game[];
   selectedGameId: string | null;
@@ -64,7 +63,6 @@ function Logo() {
 
 export default function TopupForm({
   paymentGroups,
-  qrisUrl,
   products,
   games,
   selectedGameId,
@@ -386,16 +384,6 @@ export default function TopupForm({
                               <span className="text-[11px] text-white/40">+ {rp(p.fee_idr)}</span>
                             )}
                           </div>
-                          {isQris && qrisUrl && (
-                            <div className="mt-2 flex justify-center rounded-lg bg-white p-2">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={qrisUrl}
-                                alt="QRIS"
-                                className="h-32 w-32 object-contain"
-                              />
-                            </div>
-                          )}
                           {!isQris && p.image_url && (
                             <div className="mt-2 flex items-center gap-2 rounded-lg bg-white/[0.04] p-2">
                               {/* eslint-disable-next-line @next/next/no-img-element */}

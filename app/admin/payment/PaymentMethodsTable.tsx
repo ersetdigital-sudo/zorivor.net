@@ -15,16 +15,6 @@ type Method = {
   is_enabled: boolean;
   sort_order: number;
   icon_color: string;
-  image_url: string | null;
-  image_public_id: string | null;
-};
-
-type SignParams = {
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
-  signature: string;
-  folder: string;
 };
 
 type RowState = {
@@ -40,13 +30,7 @@ type Toast = {
 
 const DEBOUNCE_MS = 350;
 
-export function PaymentMethodsTable({
-  methods,
-  signParams,
-}: {
-  methods: Method[];
-  signParams: SignParams | null;
-}) {
+export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
@@ -168,8 +152,6 @@ export function PaymentMethodsTable({
             <thead className="bg-white/[0.02] text-left text-xs text-white/40">
               <tr>
                 <th className="px-4 py-2">Label</th>
-                <th className="px-4 py-2">Image</th>
-                <th className="px-4 py-2">Code</th>
                 <th className="px-4 py-2">Biaya</th>
                 <th className="px-4 py-2">Sub</th>
                 <th className="px-4 py-2">Status</th>
@@ -194,15 +176,10 @@ export function PaymentMethodsTable({
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
-                      <MethodImageCell method={m} signParams={signParams} />
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-white/60">
-                      {m.code}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      {m.fee_idr > 0
-                        ? `Rp ${m.fee_idr.toLocaleString("id-ID")}`
-                        : "Gratis"}
+                      <FeeCell
+                        methodId={m.id}
+                        fee={m.fee_idr}
+                      />
                     </td>
                     <td className="px-4 py-2.5 text-xs text-white/60">
                       {m.sub_label ?? "-"}
@@ -278,124 +255,91 @@ function ToastStack({ toasts }: { toasts: Toast[] }) {
   );
 }
 
-function MethodImageCell({
-  method,
-  signParams,
+function FeeCell({
+  methodId,
+  fee,
 }: {
-  method: Method;
-  signParams: SignParams | null;
+  methodId: string;
+  fee: number;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(fee);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!signParams) {
-      setError("Cloudinary belum dikonfigurasi");
-      return;
-    }
+  useEffect(() => {
+    if (!editing) setValue(fee);
+  }, [fee, editing]);
+
+  async function save() {
+    setSaving(true);
     setError(null);
-    setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("api_key", signParams.apiKey);
-      fd.append("timestamp", String(signParams.timestamp));
-      fd.append("signature", signParams.signature);
-      fd.append("folder", "payment-methods");
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${signParams.cloudName}/image/upload`,
-        { method: "POST", body: fd }
-      );
+      const res = await fetch(`/api/admin/payment-methods/${methodId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fee_idr: value }),
+      });
       if (!res.ok) {
-        const t = await res.text();
-        let msg = t;
-        try {
-          msg = JSON.parse(t)?.error?.message ?? t;
-        } catch {}
-        if (/cloud_name.*disabled/i.test(msg)) {
-          throw new Error(
-            `Cloudinary cloud disabled. Aktifkan di dashboard Cloudinary.`
-          );
-        }
-        throw new Error(msg);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const json = await res.json();
-
-      const saveRes = await fetch(
-        `/api/admin/payment-methods/${method.id}/image`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            publicId: json.public_id,
-            url: json.secure_url,
-          }),
-        }
-      );
-      if (!saveRes.ok) throw new Error("Gagal simpan");
-
-      if (inputRef.current) inputRef.current.value = "";
-      window.location.reload();
+      setEditing(false);
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   }
 
-  if (method.image_url) {
+  if (!editing) {
     return (
-      <div className="flex items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={method.image_url}
-          alt={method.label}
-          className="h-8 w-8 rounded object-contain bg-white"
-        />
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/80 hover:bg-white/10"
-          disabled={uploading}
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="group inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-left text-sm hover:bg-white/[0.05]"
+        title="Klik untuk edit"
+      >
+        <span>{fee > 0 ? `Rp ${fee.toLocaleString("id-ID")}` : "Gratis"}</span>
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-white/30 opacity-0 transition group-hover:opacity-100"
         >
-          Ganti
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="hidden"
-          onChange={upload}
-        />
-        {error && (
-          <span className="text-xs text-red-300">{error}</span>
-        )}
-      </div>
+          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+        {error && <span className="ml-2 text-[10px] text-red-300">{error}</span>}
+      </button>
     );
   }
 
   return (
-    <div>
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading || !signParams}
-        className="rounded-md border border-dashed border-white/15 bg-white/[0.04] px-2 py-1 text-xs text-white/60 hover:bg-white/[0.08] disabled:opacity-50"
-      >
-        {uploading ? "Uploading…" : signParams ? "Upload" : "Cloud off"}
-      </button>
+    <div className="flex items-center gap-1">
       <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={upload}
+        type="number"
+        min={0}
+        value={value}
+        autoFocus
+        onChange={(e) => setValue(Number(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") {
+            setValue(fee);
+            setEditing(false);
+          }
+        }}
+        onBlur={save}
+        disabled={saving}
+        className="w-24 rounded-md border border-violet-400/40 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-violet-400/80"
       />
-      {error && (
-        <div className="mt-1 text-xs text-red-300">{error}</div>
-      )}
+      {saving && <span className="text-[10px] text-white/40">…</span>}
+      {error && <span className="text-[10px] text-red-300">{error}</span>}
     </div>
   );
 }
