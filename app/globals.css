@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sora: "Sora", system-ui, sans-serif;
+  --font-space: "Space Grotesk", system-ui, sans-serif;
+}
+
+@font-face { font-family: 'Space Grotesk'; src: url('/fonts/spacegrotesk-wght--light.ttf') format("truetype"); font-style: normal; font-weight: 300; font-display: swap; }
+@font-face { font-family: 'Space Grotesk'; src: url('/fonts/spacegrotesk-wght--regular.ttf') format("truetype"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Space Grotesk'; src: url('/fonts/spacegrotesk-wght--medium.ttf') format("truetype"); font-style: normal; font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Space Grotesk'; src: url('/fonts/spacegrotesk-wght--semibold.ttf') format("truetype"); font-style: normal; font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Space Grotesk'; src: url('/fonts/spacegrotesk-wght--bold.ttf') format("truetype"); font-style: normal; font-weight: 700; font-display: swap; }
+
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--thin.ttf') format("truetype"); font-style: normal; font-weight: 100; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--extralight.ttf') format("truetype"); font-style: normal; font-weight: 200; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--light.ttf') format("truetype"); font-style: normal; font-weight: 300; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--regular.ttf') format("truetype"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--medium.ttf') format("truetype"); font-style: normal; font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--semibold.ttf') format("truetype"); font-style: normal; font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--bold.ttf') format("truetype"); font-style: normal; font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-wght--extrabold.ttf') format("truetype"); font-style: normal; font-weight: 800; font-display: swap; }
+
+:root {
+  --bg: #07070c;
+  --panel: #0e0e18;
+  --line: rgba(255, 255, 255, .09);
+  --ink: #f4f4ff;
+  --mut: #9a9ab0;
+  --a1: #7c5cff;
+  --a2: #22e1c4;
+  --a3: #ff4d8d;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+h1, h2, h3, .dis {
+  font-family: "Sora", system-ui, sans-serif;
+  letter-spacing: -.02em;
+}
+
+@media (max-width: 767px) {
+  body { padding-bottom: 68px; }
+}
+@media (max-width: 1023px) {
+  body.topup-page { padding-bottom: 104px; }
+}
+
+/* ===== Shared component classes (carry-over from original HTML) ===== */
+.glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: .45;
+  pointer-events: none;
+}
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  backdrop-filter: blur(8px);
+}
+.card:hover { border-color: rgba(124, 92, 255, .55); }
+.grad {
+  background: linear-gradient(100deg, #a58bff, #22e1c4 55%, #ff7ab0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.btn {
+  background: linear-gradient(100deg, var(--a1), #5b8cff);
+  box-shadow: 0 10px 40px -12px rgba(124, 92, 255, .9);
+}
+.btn:hover { filter: brightness(1.12); }
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .05) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000, transparent);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000, transparent);
+}
+.marq {
+  display: flex;
+  gap: 2.5rem;
+  width: max-content;
+  animation: sl 26s linear infinite;
+}
+@keyframes sl { to { transform: translateX(-50%); } }
+
+details[open] .chev { transform: rotate(45deg); }
+.rise {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: all .7s cubic-bezier(.2, .7, .3, 1);
+}
+.rise.in { opacity: 1; transform: none; }
+
+.tab.on {
+  background: linear-gradient(100deg, #7c5cff, #5b8cff);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+.pcard { border-radius: 16px; }
+.pcard:hover { transform: translateY(-3px); }
+
+/* ===== Swiper ===== */
+.bannerSwiper .bslide { aspect-ratio: 16 / 10; }
+@media (min-width: 768px) {
+  .bannerSwiper .bslide { aspect-ratio: 21 / 9; }
+}
+.bannerSwiper .swiper-pagination-bullet { background: #fff; opacity: .35; }
+.bannerSwiper .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #7c5cff;
+  width: 22px;
+  border-radius: 9999px;
+}
+
+/* ===== Top-up form classes ===== */
+.step {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: linear-gradient(100deg, var(--a1), #5b8cff);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.opt { cursor: pointer; position: relative; }
+.opt input { position: absolute; opacity: 0; pointer-events: none; }
+.box {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .03);
+  padding: 14px;
+  transition: .15s;
+}
+.opt:hover .box { border-color: rgba(124, 92, 255, .5); }
+.opt input:checked + .box {
+  border-color: #7c5cff;
+  background: rgba(124, 92, 255, .14);
+  box-shadow: 0 0 0 1px #7c5cff inset;
+}
+input[type="text"] {
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #fff;
+  width: 100%;
+  outline: none;
+  font-size: 15px;
+}
+input[type="text"]:focus { border-color: #7c5cff; }
+input[type="text"]::placeholder { color: rgba(255, 255, 255, .28); }
