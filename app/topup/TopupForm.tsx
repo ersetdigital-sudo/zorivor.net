@@ -172,7 +172,7 @@ export default function TopupForm({
                     <a
                       key={g.id}
                       href={`/topup?game=${g.id}`}
-                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm transition ${
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition ${
                         isActive
                           ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
                           : "border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/[0.05]"
@@ -190,7 +190,7 @@ export default function TopupForm({
                           🎮
                         </span>
                       )}
-                      <span>{g.name}</span>
+                      <span className="whitespace-nowrap">{g.name}</span>
                     </a>
                   );
                 })}
