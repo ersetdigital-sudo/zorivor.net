@@ -6,7 +6,6 @@ import {
   IconReceipt,
   IconGamepad,
   IconCreditCard,
-  IconSettings,
   IconLogout,
   IconGames,
 } from "@/components/Icons";
@@ -37,7 +36,6 @@ export default async function AdminLayout({
           <NavItem href="/admin/games" label="Games" Icon={IconGames} />
           <NavItem href="/admin/products" label="Produk" Icon={IconGamepad} />
           <NavItem href="/admin/payment" label="Pembayaran" Icon={IconCreditCard} />
-          <NavItem href="/admin/settings" label="Pengaturan" Icon={IconSettings} />
         </nav>
 
         <form action={logout} className="absolute bottom-6 left-6 right-6">
@@ -74,9 +72,6 @@ export default async function AdminLayout({
             </Link>
             <Link href="/admin/payment" className="text-white/70">
               Pembayaran
-            </Link>
-            <Link href="/admin/settings" className="text-white/70">
-              Settings
             </Link>
           </nav>
         </div>
