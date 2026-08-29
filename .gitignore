@@ -1,6 +1,7 @@
 .env.local
 .env
 .env*.local
+.env.vercel
 node_modules/
 .next/
 out/

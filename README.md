@@ -90,6 +90,6 @@ Recommended: Vercel.
 
 1. Push to GitHub (this repo).
 2. Import project in Vercel.
-3. Add env vars from `.env.local` to Vercel project settings.
-4. Apply schema in Supabase dashboard before first request.
-5. Bootstrap admin via the script (one time, locally with the production service role key).
+3. Copy values from `.env.vercel` (gitignored, contains the prod keys) into Vercel Project Settings → Environment Variables.
+4. Apply schema (already done — see Setup steps above) before first request.
+5. Bootstrap admin (already done — see Setup steps above).
