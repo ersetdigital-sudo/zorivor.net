@@ -1,14 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
-import { SettingsEditor } from "./SettingsEditor";
+import { WhatsAppSetting } from "./WhatsAppSetting";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
   const supabase = await createClient();
-  const { data: settings } = await supabase
+  const { data: row } = await supabase
     .from("site_settings")
-    .select("key,value,updated_at")
-    .order("key", { ascending: true });
+    .select("value,updated_at")
+    .eq("key", "support_whatsapp")
+    .maybeSingle();
+
+  const wa = typeof row?.value === "string" ? row.value : "";
+  const updatedAt = row?.updated_at ?? null;
 
   return (
     <>
@@ -16,12 +20,12 @@ export default async function AdminSettingsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Pengaturan</h1>
           <p className="text-sm text-white/60">
-            No WhatsApp & info situs. Perubahan langsung tersimpan dan
-            otomatis dipakai di seluruh website.
+            Nomor WhatsApp CS. Dipakai di tombol/link WhatsApp di seluruh
+            website. Perubahan auto-tersimpan dan langsung berlaku.
           </p>
         </div>
 
-        <SettingsEditor settings={(settings ?? []) as never} />
+        <WhatsAppSetting initial={wa} updatedAt={updatedAt} />
       </div>
     </>
   );
