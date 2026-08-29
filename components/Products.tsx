@@ -224,7 +224,12 @@ const tabs: { key: Card["cat"]; label: string }[] = [
 export function Products({ dynamicCards = [] }: { dynamicCards?: LandingCard[] }) {
   const [active, setActive] = useState<Card["cat"]>("populer");
 
-  // Merge dynamic DB-driven cards with static catalog
+  // Merge dynamic DB-driven cards with static catalog, but skip static
+  // entries whose name matches a dynamic card (case-insensitive) — so
+  // we don't render Mobile Legends twice when DB already has it.
+  const dynamicNames = new Set(
+    dynamicCards.map((c) => c.name.trim().toLowerCase())
+  );
   const dynamicAsCards: Card[] = dynamicCards.map((c) => ({
     name: c.name,
     publisher: c.publisher,
@@ -244,7 +249,10 @@ export function Products({ dynamicCards = [] }: { dynamicCards?: LandingCard[] }
     href: `/topup?game=${c.id}`,
   }));
 
-  const allCards: Card[] = [...dynamicAsCards, ...cards];
+  const allCards: Card[] = [
+    ...dynamicAsCards,
+    ...cards.filter((c) => !dynamicNames.has(c.name.trim().toLowerCase())),
+  ];
 
   return (
     <section id="games" className="relative mx-auto max-w-6xl px-5 py-16">
