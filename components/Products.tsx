@@ -26,7 +26,7 @@ export function Products({ dynamicCards = [] }: { dynamicCards?: LandingCard[] }
   const cards = dynamicCards.length > 0 ? dynamicCards : FALLBACK_CARDS;
 
   return (
-    <section id="games" className="mx-auto max-w-6xl px-5 pb-24 pt-16 md:pb-16">
+    <section id="games" className="mx-auto max-w-6xl px-5 pb-32 pt-16 md:pb-16">
       {/* Header */}
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold text-white md:text-4xl">
