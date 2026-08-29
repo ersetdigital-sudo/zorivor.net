@@ -286,7 +286,13 @@ insert into public.games (slug, name, publisher, category, cover_url, descriptio
   ('valorant', 'Valorant', 'Riot Games', 'topup', null, 'Valorant Points.', 6)
 on conflict (slug) do nothing;
 
--- 8. Seed: products (use game slug → join via subquery)
+-- 8. Backfill: link any products whose game_id is NULL to their game by name
+update public.products p
+set game_id = g.id
+from public.games g
+where p.game_id is null and p.game = g.name;
+
+-- 9. Seed: products (use game slug → join via subquery)
 insert into public.products (slug, game_id, game, category, denomination, price_idr, base_price_idr, cashback_pct, sort_order)
 values
   ('ml-5',     (select id from public.games where slug='mobile-legends'), 'Mobile Legends', 'Diamond', '5 Diamond',    1500,   1700,  4, 1),
