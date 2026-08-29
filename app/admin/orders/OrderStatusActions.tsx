@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "../actions";
+import { useConfirm } from "@/components/ConfirmModal";
+import { Toast } from "@/components/Toast";
 import type { Order, OrderStatus } from "@/lib/types";
 
 const NEXT_STATUS: Record<string, OrderStatus[]> = {
@@ -14,21 +17,51 @@ const NEXT_STATUS: Record<string, OrderStatus[]> = {
 };
 
 export function OrderStatusActions({ order }: { order: Order }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(order.notes ?? "");
+  const [deleting, setDeleting] = useState(false);
   const [pending, startTransition] = useTransition();
+  const { ask, ConfirmNode } = useConfirm();
 
   const options = NEXT_STATUS[order.status] ?? [];
 
   function change(next: OrderStatus) {
     startTransition(async () => {
-      await updateOrderStatus(order.id, next, notes);
-      setOpen(false);
+      try {
+        await updateOrderStatus(order.id, next, notes);
+        Toast.success(`Status diubah ke ${next}`);
+        setOpen(false);
+      } catch (e: any) {
+        Toast.error(e?.message ?? "Gagal update status");
+      }
     });
   }
 
-  if (options.length === 0) {
-    return <span className="text-xs text-white/40">—</span>;
+  function askDelete() {
+    ask({
+      title: "Hapus Pesanan?",
+      itemName: order.invoice,
+      description:
+        "Pesanan akan dihapus permanen dari database. Invoice ini tidak akan bisa ditemukan lagi oleh customer. Aksi ini tidak bisa dibatalkan — biasanya hanya untuk order test / duplikat / salah input. Pertimbangkan ubah status ke 'refunded' untuk audit trail.",
+      confirmLabel: "Hapus Permanen",
+      onConfirm: async () => {
+        setDeleting(true);
+        try {
+          const res = await fetch(`/api/admin/orders/${order.id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            throw new Error(e.error ?? `HTTP ${res.status}`);
+          }
+          Toast.success("Pesanan dihapus");
+          startTransition(() => router.refresh());
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
   }
 
   return (
@@ -50,6 +83,14 @@ export function OrderStatusActions({ order }: { order: Order }) {
         >
           notes
         </button>
+        <button
+          onClick={askDelete}
+          disabled={deleting || pending}
+          title="Hapus pesanan permanen"
+          className="ml-auto rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+        >
+          {deleting ? "…" : "Hapus"}
+        </button>
       </div>
       {open && (
         <textarea
@@ -60,6 +101,8 @@ export function OrderStatusActions({ order }: { order: Order }) {
           className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-violet-400/60"
         />
       )}
+
+      <ConfirmNode />
     </div>
   );
 }
