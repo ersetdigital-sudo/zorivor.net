@@ -163,6 +163,8 @@ export function GamesTable({
           Belum ada game
         </div>
       )}
+
+      <ConfirmNode />
     </div>
   );
 }

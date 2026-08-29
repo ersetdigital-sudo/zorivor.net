@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash, IconUpload } from "@/components/Icons";
+import { useConfirm } from "@/components/ConfirmModal";
+import { Toast } from "@/components/Toast";
 
 type Game = {
   id: string;
@@ -38,11 +40,26 @@ export function GameProductsSection({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
+  const { ask, ConfirmNode } = useConfirm();
 
   async function remove(id: string, label: string) {
-    if (!confirm(`Hapus "${label}"?`)) return;
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-    startTransition(() => router.refresh());
+    ask({
+      title: "Hapus Produk?",
+      itemName: label,
+      description:
+        "Produk akan hilang dari halaman top-up untuk game ini. Order yang sudah ada tetap aman. Aksi ini tidak bisa dibatalkan.",
+      onConfirm: async () => {
+        const res = await fetch(`/api/admin/products/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
+        Toast.success("Produk dihapus");
+        startTransition(() => router.refresh());
+      },
+    });
   }
 
   return (
@@ -113,6 +130,8 @@ export function GameProductsSection({
           Upload icon nonaktif karena Cloudinary belum dikonfigurasi.
         </p>
       )}
+
+      <ConfirmNode />
     </div>
   );
 }

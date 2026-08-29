@@ -3,37 +3,54 @@
 import { useState, useTransition } from "react";
 import { deleteProduct, upsertProduct } from "../actions";
 import type { Product } from "@/lib/types";
+import { ConfirmModal, useConfirm } from "@/components/ConfirmModal";
+import { Toast } from "@/components/Toast";
+import { useRouter } from "next/navigation";
 
 export function ProductRow({ product }: { product: Product }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState(product);
+  const router = useRouter();
+  const { ask, ConfirmNode } = useConfirm();
 
   function save() {
     startTransition(async () => {
-      await upsertProduct({
-        id: product.id,
-        game: draft.game,
-        category: draft.category,
-        denomination: draft.denomination,
-        price_idr: Number(draft.price_idr),
-        base_price_idr:
-          draft.base_price_idr === null || isNaN(Number(draft.base_price_idr))
-            ? null
-            : Number(draft.base_price_idr),
-        cashback_pct: Number(draft.cashback_pct),
-        stock: Number(draft.stock),
-        is_active: draft.is_active,
-        sort_order: Number(draft.sort_order),
-      });
-      setEditing(false);
+      try {
+        await upsertProduct({
+          id: product.id,
+          game: draft.game,
+          category: draft.category,
+          denomination: draft.denomination,
+          price_idr: Number(draft.price_idr),
+          base_price_idr:
+            draft.base_price_idr === null || isNaN(Number(draft.base_price_idr))
+              ? null
+              : Number(draft.base_price_idr),
+          cashback_pct: Number(draft.cashback_pct),
+          stock: Number(draft.stock),
+          is_active: draft.is_active,
+          sort_order: Number(draft.sort_order),
+        });
+        setEditing(false);
+        Toast.success("Produk diperbarui");
+      } catch (e: any) {
+        Toast.error(e?.message ?? "Gagal menyimpan");
+      }
     });
   }
 
-  function remove() {
-    if (!confirm(`Hapus ${product.denomination}?`)) return;
-    startTransition(async () => {
-      await deleteProduct(product.id);
+  function askDelete() {
+    ask({
+      title: "Hapus Produk?",
+      itemName: product.denomination,
+      description:
+        "Produk akan dihapus dari katalog. Order yang sudah ada tetap aman. Aksi ini tidak bisa dibatalkan.",
+      onConfirm: async () => {
+        await deleteProduct(product.id);
+        Toast.success("Produk dihapus");
+        startTransition(() => router.refresh());
+      },
     });
   }
 
@@ -176,7 +193,7 @@ export function ProductRow({ product }: { product: Product }) {
             Edit
           </button>
           <button
-            onClick={remove}
+            onClick={askDelete}
             disabled={pending}
             className="rounded bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20"
           >
@@ -184,6 +201,7 @@ export function ProductRow({ product }: { product: Product }) {
           </button>
         </div>
       </td>
+      <ConfirmNode />
     </tr>
   );
 }

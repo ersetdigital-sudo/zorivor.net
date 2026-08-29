@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconPlus, IconTrash } from "@/components/Icons";
 import { ToggleSwitch } from "@/components/ToggleSwitch";
+import { useConfirm } from "@/components/ConfirmModal";
+import { Toast } from "@/components/Toast";
 
 type Method = {
   id: string;
@@ -22,7 +24,7 @@ type RowState = {
   saving: boolean;
 };
 
-type Toast = {
+type ToggleError = {
   id: number;
   kind: "error" | "success";
   message: string;
@@ -36,10 +38,11 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
   const [showAdd, setShowAdd] = useState(false);
 
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToggleError[]>([]);
   const toastId = useRef(0);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const inflight = useRef<Record<string, AbortController>>({});
+  const { ask, ConfirmNode } = useConfirm();
 
   // Initialize / sync rowState when methods list changes
   useEffect(() => {
@@ -56,7 +59,7 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
     });
   }, [methods]);
 
-  function pushToast(kind: Toast["kind"], message: string) {
+  function pushToast(kind: ToggleError["kind"], message: string) {
     const id = ++toastId.current;
     setToasts((t) => [...t, { id, kind, message }]);
     setTimeout(() => {
@@ -110,9 +113,24 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
   }
 
   async function remove(id: string, label: string) {
-    if (!confirm(`Hapus metode "${label}"?`)) return;
-    await fetch(`/api/admin/payment-methods/${id}`, { method: "DELETE" });
-    startTransition(() => router.refresh());
+    ask({
+      title: "Hapus Metode Pembayaran?",
+      itemName: label,
+      description:
+        "Metode akan hilang dari halaman top-up. Order yang sudah ada tetap aman. Aksi ini tidak bisa dibatalkan.",
+      onConfirm: async () => {
+        const res = await fetch(
+          `/api/admin/payment-methods/${id}`,
+          { method: "DELETE" }
+        );
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
+        Toast.success("Metode dihapus");
+        startTransition(() => router.refresh());
+      },
+    });
   }
 
   const grouped: Record<string, Method[]> = {};
@@ -231,11 +249,12 @@ export function PaymentMethodsTable({ methods }: { methods: Method[] }) {
       )}
 
       <ToastStack toasts={toasts} />
+      <ConfirmNode />
     </div>
   );
 }
 
-function ToastStack({ toasts }: { toasts: Toast[] }) {
+function ToastStack({ toasts }: { toasts: ToggleError[] }) {
   if (toasts.length === 0) return null;
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
