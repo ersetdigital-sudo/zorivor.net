@@ -153,6 +153,12 @@ create policy "admins can update orders"
   to authenticated
   using (public.is_admin());
 
+drop policy if exists "admins can delete orders" on public.orders;
+create policy "admins can delete orders"
+  on public.orders for delete
+  to authenticated
+  using (public.is_admin());
+
 -- 4. Site settings (key-value config editable from admin)
 create table if not exists public.site_settings (
   key text primary key,
