@@ -24,13 +24,16 @@ Copy `.env.example` → `.env.local` and fill in:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_PASSWORD` (the Postgres password set when the project was created — used to apply schema + verify)
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 
-### 3. Apply database schema (one-time, manual)
+### 3. Apply database schema (one-time)
 
-Open Supabase Dashboard → SQL Editor → New query → paste contents of `supabase/schema.sql` → Run.
+```bash
+node supabase/apply-schema.mjs
+```
 
-This creates tables: `admin_roles`, `products`, `orders`, `site_settings`, plus seed data.
+This connects via Supavisor session mode (`aws-0-<region>.pooler.supabase.com:5432`, IPv4-friendly) and applies `supabase/schema.sql` — creates tables (`admin_roles`, `products`, `orders`, `site_settings`), RLS policies, and seed data.
 
 ### 4. Bootstrap admin user
 
@@ -38,7 +41,7 @@ This creates tables: `admin_roles`, `products`, `orders`, `site_settings`, plus 
 node supabase/bootstrap-admin.mjs
 ```
 
-This creates the auth user (via service role) and inserts the `admin_roles` row.
+Creates the auth user (via service role) and inserts the `admin_roles` row.
 
 ### 5. Run
 
