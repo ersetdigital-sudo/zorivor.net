@@ -46,14 +46,14 @@ export function Products({ dynamicCards = [] }: { dynamicCards?: LandingCard[] }
             className="group relative block overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] transition-all duration-200 hover:-translate-y-1 hover:border-violet-400/40 hover:shadow-[0_8px_30px_rgba(124,92,255,0.15)]"
           >
             {/* Cover */}
-            <div className="relative aspect-[4/3] w-full overflow-hidden bg-white/[0.03]">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5">
               {c.cover ? (
                 <Image
                   src={c.cover}
                   alt={c.name}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="object-contain p-3 transition-transform duration-300 group-hover:scale-105 md:p-4 md:object-cover md:p-0"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-3xl text-white/20">
