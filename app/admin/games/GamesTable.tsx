@@ -94,7 +94,6 @@ export function GamesTable({
           >
             <div className="relative w-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20" style={{ aspectRatio: "3/4" }}>
               {g.cover_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={g.cover_url}
                   alt={g.name}
