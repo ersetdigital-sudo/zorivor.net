@@ -46,7 +46,7 @@ export function Products({ dynamicCards = [] }: { dynamicCards?: LandingCard[] }
             className="group relative block overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] transition-all duration-200 hover:-translate-y-1 hover:border-violet-400/40 hover:shadow-[0_8px_30px_rgba(124,92,255,0.15)]"
           >
             {/* Cover */}
-            <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-white/[0.03]">
               {c.cover ? (
                 <Image
                   src={c.cover}
